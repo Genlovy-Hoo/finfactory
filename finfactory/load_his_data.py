@@ -46,7 +46,7 @@ def find_target_dir(dir_name, root_dir=None, make=False,
                      root_dir, dir_name))
 
 #%%
-def load_daily_binance(name1, name2, mkt='binance', root_dir=None):
+def load_ccxt_daily(name1, name2, mkt='binance', root_dir=None):
     fdir = find_target_dir('{}/ccxt_{}/'.format(name1, mkt),
                            root_dir=root_dir)
     fpath = fdir + '{}_daily.csv'.format(name2)
@@ -60,8 +60,8 @@ def load_daily_binance(name1, name2, mkt='binance', root_dir=None):
     return df
 
 
-def load_daily_btc126(symbol, root_dir=None):
-    data_dir = find_target_dir('{}/btc126/'.format(symbol),
+def load_daily_btc126(name1, root_dir=None):
+    data_dir = find_target_dir('{}/btc126/'.format(name1),
                                root_dir=root_dir)
     fpaths = [data_dir+x for x in os.listdir(data_dir)]
     data = []
@@ -72,9 +72,9 @@ def load_daily_btc126(symbol, root_dir=None):
     data.columns = ['date', 'open', 'high', 'low', 'close', 'volume', 'pct%']
     data.sort_values('date', ascending=True, inplace=True)
     data['time'] = data['date'].copy()
-    if symbol == 'eth':
+    if name1 == 'eth':
         data = data[data['date'] >= '2015-08-07']
-    elif symbol == 'btc':
+    elif name1 == 'btc':
         data = data[data['date'] >= '2010-07-19']
     data.set_index('date', inplace=True)
     data['volume'] = data['volume'].apply(lambda x: eval(''.join(x.split(','))))
@@ -89,10 +89,10 @@ def load_daily_btc126(symbol, root_dir=None):
     return data
 
 
-def load_daily_qkl123(symbol, root_dir=None):
-    fdir = find_target_dir('{}/QKL123/'.format(symbol),
+def load_daily_qkl123(name1, root_dir=None):
+    fdir = find_target_dir('{}/qkl123/'.format(name1),
                            root_dir=root_dir)
-    fpath = fdir + '{}-币价走势.csv'.format(symbol.upper())
+    fpath = fdir + '{}-币价走势.csv'.format(name1.upper())
     df = load_csv(fpath).rename(columns={'时间': 'time', '币价': 'close'})
     df['time'] = pd.to_datetime(df['time'])
     df['time'] = df['time'].apply(lambda x: x.strftime('%Y-%m-%d'))
@@ -104,14 +104,14 @@ def load_daily_qkl123(symbol, root_dir=None):
 
 def load_daily_crypto_usdt(name1, name2, mkt='binance',
                            root_dir=None, logger=None):
-    重写
-    df0 = load_daily_binance(name1, name2, mkt, root_dir)
+    assert name1 in ['btc', 'eth'], '`name1`只能是`btc`或`eth`！'
+    df0 = load_ccxt_daily(name1, name2, mkt, root_dir)
     df0['data_source'] = 'binance'
     df0['idx'] = range(0, df0.shape[0])
-    df1 = load_daily_btc126(name1)
+    df1 = load_daily_btc126(name1, root_dir)
     df1['data_source'] = 'btc126'
     df1['idx'] = range(df0.shape[0], df0.shape[0]+df1.shape[0])
-    df2 = load_daily_qkl123(name1)
+    df2 = load_daily_qkl123(name1, root_dir)
     df2['data_source'] = 'qkl123'
     df2['idx'] = range(df0.shape[0]+df1.shape[0], df0.shape[0]+df1.shape[0]+df2.shape[0])
     df = pd.concat((df0, df1, df2), axis=0)
@@ -124,12 +124,12 @@ def load_daily_crypto_usdt(name1, name2, mkt='binance',
     return df.reindex(columns=['time', 'open', 'high', 'low', 'close', 'volume', 'data_source'])
     
 
-def load_minute_binance(symbol, freq='1minute',
-                        start_time=None, end_time=None,
-                        root_dir=None):
-    fdir = find_target_dir('{}/binance/'.format(symbol),
+def load_ccxt_minute(name1, name2, minute=15,
+                     mkt='binance', root_dir=None,
+                     start_time=None, end_time=None):
+    fdir = find_target_dir('{}/ccxt_{}/'.format(name1, mkt),
                            root_dir=root_dir)
-    fpath = fdir + '{}_{}.csv'.format(symbol, freq)
+    fpath = fdir + '{}_{}minute.csv'.format(name2, int(minute))    
     df = load_csv(fpath)
     df.sort_values('time', ascending=True, inplace=True)
     if not start_time is None:
@@ -249,13 +249,13 @@ if __name__ == '__main__':
     strt_tm = time.time()
     
     #%%
-    df_eth = load_daily_crypto('eth', 'eth_usdt')
-    df_btc = load_daily_crypto('btc', 'btc_usdt')
-    df_eth_15m = load_minute_binance('eth', '15minute')
-    # df_btc_5m = load_minute_binance('btc', '5minute')
-    # df_btc_1m = load_minute_binance('btc',
-    #                                 start_time='2022-02-01 05:00:00',
-    #                                 end_time='2022-06-09 14:00:00')
+    df_eth = load_daily_crypto_usdt('eth', 'eth_usdt')
+    df_btc = load_daily_crypto_usdt('btc', 'btc_usdt')
+    df_eth_15m = load_ccxt_minute('eth', 'eth_usdt')
+    # df_btc_5m = load_ccxt_minute('btc', 'btc_usdt', 5)
+    # df_btc_1m = load_ccxt_minute('btc', 'btc_usdt', 1,
+    #                              start_time='2022-02-01 05:00:00',
+    #                              end_time='2022-06-09 14:00:00')
 
     #%%
     df_chn_bonds = load_chn_national_bond_yields()

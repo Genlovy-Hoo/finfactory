@@ -44,6 +44,8 @@ def get_klines_ccxt(symbol, start_time, freq='1d', n=None,
     '''
     if mkt is None:
         mkt = get_ccxt_market()
+    if isinstance(mkt, str):
+        mkt = get_ccxt_market(mkt)
     since = int(str2timestamp(start_time) * 1000)
     logger_show(symbol+' '+start_time+' ...', logger, 'info')
     data = mkt.fetch_ohlcv(symbol, freq, since=since, limit=n)

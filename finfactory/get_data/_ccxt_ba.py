@@ -10,10 +10,8 @@ if __name__ == '__main__':
     
 
     files = [
-        'ccxt_1d_ba.py',
-        'ccxt_15min_ba.py',
-        'ccxt_5min_ba.py',
-        # 'ccxt_1min_ba.py'
+        'ccxt_1d.py',
+        'ccxt_minute.py'
     ]
     # files = [os.path.join(cwd, f) for f in files]
     
