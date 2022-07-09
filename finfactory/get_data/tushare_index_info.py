@@ -82,10 +82,11 @@ def update_index_info(market, save_path=None, root_dir=None,
     df = archive_data(df, df_exist,
                       sort_cols=['发布日期', 'code'],
                       del_dup_cols=['code'],
-                      sort_first=True,
+                      sort_first=False,
                       csv_path=save_path,
                       csv_index=None,
                       csv_encoding='gbk')
+    df.reset_index(drop=True, inplace=True)
     
     return df
 
@@ -118,8 +119,10 @@ if __name__ == '__main__':
         'SW': '申万指数',
         'OTH': '其他指数',
     }
+    
+    dfs = {}
     for mkt in mkts.keys():
-        exec('''df_{} = try_update_index_info(
+        exec('''dfs['{}'] = try_update_index_info(
                             mkt, 
                             save_path=None,
                             root_dir=None,

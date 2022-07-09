@@ -45,7 +45,10 @@ def _get_str_data(str_data):
 
 
 def get_gold_daily(start_date='1983-01-05', end_date=None, logger=None):
-    '''和讯网爬取黄金现货日K线数据'''
+    '''
+    | 和讯网爬取黄金现货日K线数据
+    | http://gold.hexun.com/hjxh/
+    '''
     if isnull(end_date):
         end_date = dttools.today_date()
     if isnull(start_date):
@@ -60,8 +63,7 @@ def get_gold_daily(start_date='1983-01-05', end_date=None, logger=None):
         logger_show('get hexun gold daily, {}'.format(dt1), logger)
         url = 'http://webforex.hermes.hexun.com/forex/kline?code=FOREXXAUUSD&start={}&number={}&type=5'.format(dt, n)
         html = requests.get(url,
-                            headers={'User-Agent':
-                                     'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36'})
+                            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36'})
         bsObj = BeautifulSoup(html.content, 'lxml')
         df = _get_str_data(bsObj.find('p').get_text())
         data.append(df)
@@ -98,6 +100,7 @@ def update_gold_daily(df_exist=None,
                             sort_first=False,
                             csv_path=fpath,
                             csv_index=None)
+    data_all.reset_index(drop=True, inplace=True)
     
     return data_all
 

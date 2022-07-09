@@ -80,6 +80,7 @@ def update_minute(symbol, minute, df_exist=None,
             if os.path.exists(fpath):
                 shutil.copy(fpath, fpath[:-4]+'_bk'+fpath[-4:])
             df.to_csv(fpath, index=None)
+    df.reset_index(drop=True, inplace=True)
     return df
 
 

@@ -10,9 +10,13 @@ from dramkit.datetimetools import get_recent_workday_chncal
 from finfactory.utils.utils import check_date_loss
 from finfactory.utils.utils import parms_check_ts_daily
 from finfactory.utils.utils import get_tushare_api
+from finfactory.config import cfg
 
 
 COLS_FINAL = ['code', 'date', 'mapping_code']
+
+global TS_API_USED_TIMES
+TS_API_USED_TIMES = 0
 
 
 def check_loss(data, trade_dates, logger=None):
@@ -47,14 +51,27 @@ def get_futures_mapping(start_date='20220601',
     if isnull(end_date):
         end_date = dttools.today_date('')
     start_date = dttools.date_reformat(start_date, '')
-    end_date = dttools.date_reformat(end_date, '')
-    df = ts_api.fut_mapping(start_date=start_date, end_date=end_date)
+    end_date = dttools.date_reformat(end_date, '')    
+    data = []
+    for date1, date2 in dttools.cut_date(start_date, end_date, 4):
+        logger_show('{}->{}...'.format(date1, date2), logger)
+        df = ts_api.fut_mapping(start_date=date1,
+                                end_date=date2)
+        data.append(df)
+        global TS_API_USED_TIMES
+        TS_API_USED_TIMES += 1
+        if TS_API_USED_TIMES % cfg.ts_1min_fut_mapping == 0:
+            logger_show('{}, pausing...'.format(date1), logger)
+            time.sleep(61)
+    df = pd.concat(data, axis=0)
     df.rename(columns={'ts_code': 'code',
                        'trade_date': 'date',
                        'mapping_ts_code': 'mapping_code'},
               inplace=True)
     df['date'] = df['date'].apply(
                  lambda x: dttools.date_reformat(x, '-'))
+    df.sort_values(['date', 'code'], inplace=True)
+    df.reset_index(drop=True, inplace=True)
     return df[COLS_FINAL]
 
 
@@ -97,13 +114,12 @@ def update_futures_mapping(df_exist=None, fpath=None,
     logger_show('更新主力与连续合约映射数据, {}->{} ...'.format(dates[0], dates[-1]),
                 logger, 'info')
     data = []
-    nget = 0
     for date1, date2 in dttools.cut_date(start_date, end_date, 4):
-        logger_show('{}->{}...'.format(date1, date2), logger)
         df = get_futures_mapping(date1, date2, ts_api)
         data.append(df)
-        nget += 1
-        if nget % 100 == 0:
+        global TS_API_USED_TIMES
+        TS_API_USED_TIMES += 1
+        if TS_API_USED_TIMES % cfg.ts_1min_fut_mapping == 0:
             # 防止报错丢失，在迭代过程中保存数据
             data_ = pd.concat(data, axis=0)[COLS_FINAL]
             if data_.shape[0] > 0:
@@ -113,8 +129,8 @@ def update_futures_mapping(df_exist=None, fpath=None,
                                  sort_first=False,
                                  csv_path=fpath,
                                  csv_index=None)
-            logger_show('pausing...', logger)
-            time.sleep(65)
+            logger_show('{}, pausing...'.format(date1), logger)
+            time.sleep(61)
     data = pd.concat(data, axis=0)
     if data.shape[0] == 0:
         logger_show('主力与连续合约映射数据获取0条记录，返回已存在数据。',
@@ -130,6 +146,7 @@ def update_futures_mapping(df_exist=None, fpath=None,
                             sort_first=False,
                             csv_path=fpath,
                             csv_index=None)
+    data_all.reset_index(drop=True, inplace=True)
     
     return data_all
 
@@ -174,7 +191,6 @@ if __name__ == '__main__':
     from dramkit import close_log_file
     from dramkit.gentools import try_repeat_run
     from finfactory.load_his_data import load_trade_dates_tushare
-    from finfactory.config import cfg
     from finfactory.utils.utils import gen_py_logger
     strt_tm = time.time()
     

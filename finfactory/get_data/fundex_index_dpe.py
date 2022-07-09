@@ -121,6 +121,7 @@ def update_index_pe_daily(code, df_exist=None, fpath=None,
                       sort_first=False,
                       csv_path=fpath,
                       csv_index=None)
+    df.reset_index(drop=True, inplace=True)
         
     return df
 
@@ -191,12 +192,14 @@ if __name__ == '__main__':
         '399006.SZ', # 创业板指
         '000001.SH', # 上证指数
     ]
+    
+    dfs, losses = {}, {}
     for code in codes:
         if 'SH' in code:
             trade_dates = trade_dates_sh
         else:
             trade_dates = trade_dates_sz
-        exec('''df_{}, loss_{} = try_update_index_pe_daily_check(
+        exec('''dfs['{}'], losses['{}'] = try_update_index_pe_daily_check(
                                         code,
                                         save_path=None,
                                         js_dir=None,

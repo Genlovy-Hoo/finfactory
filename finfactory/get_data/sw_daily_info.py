@@ -7,7 +7,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 import dramkit.datetimetools as dttools
 from dramkit import isnull, logger_show, load_csv
-from dramkit.iotools import load_csvs
+from dramkit.iotools import load_csvs_dir
 from dramkit.other.othertools import archive_data
 from finfactory.fintools.utils_chn import get_trade_dates
 from finfactory.load_his_data import find_target_dir
@@ -27,11 +27,11 @@ def load_sw_daily_ori(root_dir=None, save_path=None):
         save_dir = find_target_dir('sw/', root_dir=root_dir)
         save_path = save_dir + 'sw_daily.csv'
     ori_dir = find_target_dir('sw/daily_ori/', root_dir=root_dir)
-    df = load_csvs(ori_dir,
-                   kwargs_sort={'by': ['date', 'code']},
-                   kwargs_drop_dup={'subset': ['date', 'code'],
-                                    'keep': 'last'},
-                   encoding='gbk')
+    df = load_csvs_dir(ori_dir,
+                kwargs_sort={'by': ['date', 'code']},
+                kwargs_drop_dup={'subset': ['date', 'code'],
+                                 'keep': 'last'},
+                encoding='gbk')
     df.to_csv(save_path, index=None, encoding='gbk')
     return df
 
@@ -143,11 +143,16 @@ def get_daily_info_by_dates(dates, save_ori=False,
     data = []
     for k in range(len(dates)):
         date = dates[k]
-        df = get_daily_info_by_date(date,
-                                    save_ori=save_ori,
-                                    ori_save_path=None,
-                                    root_dir=root_dir,
-                                    logger=logger)
+        skip_dates = ['2021-08-06']
+        # skip_dates = []
+        if dttools.date_reformat(date, '-') in skip_dates:
+            df = pd.DataFrame(columns=COLS_FINAL)
+        else:
+            df = get_daily_info_by_date(date,
+                                        save_ori=save_ori,
+                                        ori_save_path=None,
+                                        root_dir=root_dir,
+                                        logger=logger)
         data.append(df)
         if k != len(dates)-1:
             logger_show('pausing...', logger)
@@ -155,6 +160,7 @@ def get_daily_info_by_dates(dates, save_ori=False,
     data = pd.concat(data, axis=0)
     data.sort_values(['date', 'code'], ascending=True, inplace=True)
     data.drop_duplicates(subset=['date', 'code'], keep='last', inplace=True)
+    data.reset_index(drop=True, inplace=True)
     return data
 
 
@@ -205,7 +211,8 @@ def update_daily_info(df_exist=None, fpath=None,
                         sort_first=False,
                         csv_path=fpath,
                         csv_index=None,
-                        csv_encoding='gbk')    
+                        csv_encoding='gbk')
+    data.reset_index(drop=True, inplace=True)
     
     return data
 
@@ -266,12 +273,12 @@ if __name__ == '__main__':
         return update_daily_info_check(*args, **kwargs)
     
     
-    df = try_update_daily_info_check(save_path=None,
-                                     root_dir=None,
-                                     save_ori=True,
-                                     start_date=None,
-                                     trade_dates=trade_dates,
-                                     logger=logger)
+    df, loss = try_update_daily_info_check(save_path=None,
+                                           root_dir=None,
+                                           save_ori=True,
+                                           start_date=None,
+                                           trade_dates=trade_dates,
+                                           logger=logger)
     
     close_log_file(logger)
     

@@ -2,22 +2,35 @@
 
 import os
 import pandas as pd
+from pathlib import Path
 import tushare as ts
 import dramkit.datetimetools as dttools
 from dramkit import load_csv, isnull, simple_logger
+from dramkit.gentools import link_lists
 from dramkit.other.othertools import get_csv_df_colmaxmin
 from finfactory.fintools.utils_chn import get_trade_dates
 from finfactory.fintools.utils_chn import get_recent_trade_date
 from finfactory.config import cfg
 
 
-def gen_py_logger(pypath, logdir=None):
+FILE_PATH = Path(os.path.realpath(__file__))
+
+
+def gen_py_logger(pypath, logdir=None, config=None):
     '''根据Python文件路径生成对应的日志文件路径'''
-    if cfg.no_py_log:
+    if isnull(config):
+        from copy import copy
+        config = copy(cfg)
+    if config.no_py_log:
         # return None
         return simple_logger()
     if isnull(logdir):
-        for fdir in cfg.log_dirs:
+        prefix_dirs = config.log_dirs.copy()
+        fpath = str(FILE_PATH.parent.parent.parent)
+        fpath = os.path.join(fpath, 'log/')
+        fpath = fpath.replace('\\', '/')
+        prefix_dirs.append(fpath)
+        for fdir in prefix_dirs:
             if os.path.exists(fdir):
                 logdir = fdir
                 break
@@ -113,6 +126,10 @@ def check_daily_data_is_new(df_path,
 
 def check_month_loss(df, month_col='month',
                      return_loss_data=False):
+    '''
+    | 月度数据缺失检查
+    | 注：month_col格式须如：'202206'
+    '''
     if month_col is None:
         for col in ['month', 'time']:
             if col in df.columns:
@@ -130,11 +147,45 @@ def check_month_loss(df, month_col='month',
     df_all = pd.merge(month_all, df, how='left',
                       left_on=month_col+'_all',
                       right_on=month_col)
+    df_all.sort_values(month_col+'_all', inplace=True)
     df_loss = df_all[df_all[month_col].isna()]
     if return_loss_data:
         return df_loss
     else:
         return df_loss[month_col+'_all'].unique().tolist()
+    
+    
+def check_quarter_loss(df, quarter_col='quarter',
+                       return_loss_data=False):
+    '''
+    | 季度数据缺失检查
+    | 注：quarter_col格式须如：'2022Q2'
+    '''
+    if quarter_col is None:
+        for col in ['quarter', 'time']:
+            if col in df.columns:
+                quarter_col = col
+                break            
+    quarter_min = str(df[quarter_col].min())
+    quarter_max = str(df[quarter_col].max())
+    assert len(quarter_min) == 6 and len(quarter_max) == 6
+    year_min, year_max = quarter_min[:4], quarter_max[:4]
+    year_all = list(range(int(year_min), int(year_max)+1))
+    quarter_all = [[str(y)+'Q'+str(x) for x in range(1, 5)] for y in year_all]
+    quarter_all = link_lists(quarter_all)
+    quarter_all = list(set(quarter_all))
+    quarter_all = [x for x in quarter_all if x >= quarter_min and x <= quarter_max]
+    quarter_all = pd.DataFrame(quarter_all,
+                             columns=[quarter_col+'_all'])
+    df_all = pd.merge(quarter_all, df, how='left',
+                      left_on=quarter_col+'_all',
+                      right_on=quarter_col)
+    df_all.sort_values(quarter_col+'_all', inplace=True)
+    df_loss = df_all[df_all[quarter_col].isna()]
+    if return_loss_data:
+        return df_loss
+    else:
+        return df_loss[quarter_col+'_all'].unique().tolist()
 
 
 def check_minute_loss(df, freq='1min', time_col=None,

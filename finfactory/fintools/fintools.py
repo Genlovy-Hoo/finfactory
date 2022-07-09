@@ -938,14 +938,14 @@ if __name__ == '__main__':
     from dramkit import load_csv
     from dramkit.gentools import get_preval_func_cond
     from dramkit.gentools import replace_repeat_iter
-    from dramkit.plottools.plot_candle import plot_candle
+    from finfactory.finplot.plot_candle import plot_candle
     from finfactory.fintools.utils_gains import get_yield_curve
 
     strt_tm = time.time()
 
     #%%
     # 50ETF日线行情
-    fpath = '../_test/510050_daily_pre_fq.csv'
+    fpath = '../_test/510050.SH_daily_qfq.csv'
     df = load_csv(fpath)
     df.set_index('date', drop=False, inplace=True)
     # df = df.reindex(columns=['high', 'low', 'close'])

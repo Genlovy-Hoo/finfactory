@@ -115,6 +115,7 @@ def cffex_lhb_futures_check(code_start_end_dates=None,
         dates = get_trade_dates(start_date, end_date,
                                 trade_dates_df_path=trade_dates)
         dates.sort()
+        dates = dates[-20:] # 只检查最近一段时间
         ndates = len(dates)
         for k in range(ndates):
             date = dates[k]

@@ -98,6 +98,7 @@ def update_silver_daily(df_exist=None,
                             sort_first=False,
                             csv_path=fpath,
                             csv_index=None)
+    data_all.reset_index(drop=True, inplace=True)
     
     return data_all
 

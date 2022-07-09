@@ -2954,7 +2954,7 @@ if __name__ == '__main__':
                             [['in_maxDown', (1,), ('.-r',), ('最大回撤区间',)]]},
                 grids=True, figsize=(11, 7))
 
-    fpath = '../_test/510050_daily_pre_fq.csv'
+    fpath = '../_test/510050.SH_daily_qfq.csv'
     data = load_csv(fpath)
     data.set_index('date', drop=False, inplace=True)
     data = data.iloc[-500:, :][['close']]
@@ -2988,7 +2988,7 @@ if __name__ == '__main__':
 
     #%%
     # 收益率、波动率、夏普测试
-    fpath = '../_test/510050_daily_pre_fq.csv'
+    fpath = '../_test/510050.SH_daily_qfq.csv'
     data = load_csv(fpath)
     data.set_index('date', drop=False, inplace=True)
 

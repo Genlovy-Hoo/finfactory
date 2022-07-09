@@ -63,6 +63,7 @@ def update_index_pe(eniu_code, df_exist=None,
                           sort_first=False,
                           csv_path=fpath,
                           csv_index=None)
+    df_all.reset_index(drop=True, inplace=True)
         
     return df_all
 
@@ -134,12 +135,14 @@ if __name__ == '__main__':
         'sh000688', # 科创50
         'sz399102', # 创业板综
         ]
+    
+    dfs, losses = {}, {}
     for eniu_code in eniu_codes:
         if 'sh' in eniu_code:
             trade_dates = trade_dates_sh
         else:
             trade_dates = trade_dates_sz
-        exec('''df_{}, loss_{} = try_update_index_pe_check(
+        exec('''dfs['{}'], losses['{}'] = try_update_index_pe_check(
                                     eniu_code, 
                                     save_path=None,
                                     root_dir=None,

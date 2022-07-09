@@ -105,6 +105,7 @@ def update_trade_dates(exchange='SSE', df_exist=None, fpath=None,
                             sort_first=False,
                             csv_path=fpath,
                             csv_index=None)
+    data_all.reset_index(drop=True, inplace=True)
     
     return data_all
 
@@ -170,10 +171,12 @@ if __name__ == '__main__':
             'SHFE': '1991-05-27', # 上期所
             'CZCE': '1990-10-11', # 郑商所
             'DCE': '1993-02-28', # 大商所
-            'INE': '2017-05-22' # 上能源
+            'INE': '2017-05-22', # 上能源
         }
+    
+    dfs, losses = {}, {}
     for ex, start_date in exs.items():
-        exec('''df_{}, loss_{} = try_update_trade_dates_check(
+        exec('''dfs['{}'], losses['{}'] = try_update_trade_dates_check(
                                     ex,
                                     save_path=None,
                                     root_dir=None,

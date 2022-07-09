@@ -224,11 +224,11 @@ def get_last_effect_finreport_dates(date,
     return dates
 
 
-def get_code_ext(code):
+def get_code_ext(code, return_sure=False):
     '''
     TODO
     ----
-    检查更新代码规则，增加北交所
+    检查更新代码规则
     
     
     | 返回带交易所后缀的股票代码格式，如输入`300033`，返回`300033.SZ`
@@ -240,24 +240,40 @@ def get_code_ext(code):
 
     code = str(code)
 
-    # 上交所A股以'600'、'601'、'603'、'688'（科创板）开头，B股以'900'开头，共6位
-    if len(code) == 6 and code[0:3] in ['600', '601', '603', '688', '900']:
-        return code + '.SH'
+    # 上交所A股以'600', '601', '603', '688'（科创板）, '689'（科创板CDR）开头，B股以'900'开头，共6位
+    if len(code) == 6 and code[0:3] in ['600', '601', '603', '688', '689', '900']:
+        if not return_sure:
+            return code+'.SH'
+        return code+'.SH', True
 
     # 上交所50ETF期权和300ETF期权代码以'100'开头，共8位
     if len(code) == 8 and code[0:3] == '100':
-        return code + '.SH'
+        if not return_sure:
+            return code+'.SH'
+        return code+'.SH', True
 
-    # 深交所A股以'000'（主板）、'002'（中小板）, '300'（创业板）开头，共6位
+    # 深交所A股以'000'（主板）, '002'（中小板）, '300'（创业板）开头，共6位
     # 深交所B股以'200'开头，共6位
     if len(code) == 6 and code[0:3] in ['000', '002', '300', '200']:
-        return code + '.SZ'
+        if not return_sure:
+            return code+'.SZ'
+        return code+'.SZ', True
 
     # 深交所300ETF期权代码以'900'开头，共8位
     if len(code) == 8 and code[0:3] == '900':
-        return code + '.SZ'
-
-    return code
+        if not return_sure:
+            return code+'.SZ'
+        return code+'.SZ', True
+    
+    # 北交所A股以'83', '87', '43', '88'开头，共6位
+    if len(code) == 6 and code[0:2] in ['83', '87', '43', '88']:
+        if not return_sure:
+            return code+'.BJ'
+        return code+'.BJ', True
+    
+    if not return_sure:
+        return code
+    return code, False
 
 
 def get_trade_fee_Astock(code, buy_or_sel, vol, price,

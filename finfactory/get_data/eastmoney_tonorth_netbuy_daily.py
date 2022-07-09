@@ -75,6 +75,7 @@ def update_tonorth_netbuy_daily(df_exist=None, fpath=None, logger=None):
                           csv_path=fpath,
                           csv_index=None,
                           csv_encoding='gbk')
+    df_all.reset_index(drop=True, inplace=True)
         
     return df_all
 

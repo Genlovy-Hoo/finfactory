@@ -236,13 +236,13 @@ def get_boll_label_uplow_cross(data, lag=15, width=2, tol=0.0/100,
 
 if __name__ == '__main__':
     from dramkit import load_csv, plot_series
-    from dramkit.plottools.plot_candle import plot_candle
-    from finfactory.fintools.finplot import plot_boll
+    from finfactory.finplot.plot_candle import plot_candle
+    from finfactory.finplot.finplot import plot_boll
     from finfactory.fintools.utils_gains import get_yield_curve
     import time
     strt_tm = time.time()
 
-    fpath = '../_test/510050_daily_pre_fq.csv'
+    fpath = '../_test/510050.SH_daily_qfq.csv'
 
     data = load_csv(fpath).rename(columns={'date': 'time'})
     data = data.reindex(columns=['time', 'open', 'low', 'high', 'close',

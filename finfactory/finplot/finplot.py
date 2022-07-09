@@ -59,7 +59,7 @@ if __name__ == '__main__':
     from dramkit import load_csv
     from finfactory.fintools.fintools import boll
     
-    fpath = '../_test/510050_daily_pre_fq.csv'
+    fpath = '../_test/510050.SH_daily_qfq.csv'
 
     data = load_csv(fpath).rename(columns={'date': 'time'}).set_index('time')
     data = data.reindex(columns=['code', 'last_close', 'open', 'low', 'high',

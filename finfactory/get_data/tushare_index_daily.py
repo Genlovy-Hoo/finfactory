@@ -38,17 +38,23 @@ def get_index_daily(code, start_date, end_date=None, ts_api=None):
         end_date = dttools.today_date('')
     start_date = dttools.date_reformat(start_date, '')
     end_date = dttools.date_reformat(end_date, '')
-    df = ts_api.index_daily(ts_code=code,
-                            start_date=start_date,
-                            end_date=end_date)
-    df['vol'] = df['vol'] * 100 # tushare指数行情成交量单位为手
-    df['amount'] = df['amount'] * 1000 # tushare指数行情成交额单位为千元
     cols = {'ts_code': 'code', 'trade_date': 'date',
             'pct_chg': 'change_pct', 'vol': 'volume'}
+    data = []
+    for date1, date2 in dttools.cut_date(start_date, end_date, 6000):
+        df = ts_api.index_daily(ts_code=code,
+                                start_date=date1,
+                                end_date=date2)
+        data.append(df)
+    df = pd.concat(data, axis=0)    
+    df['vol'] = df['vol'] * 100 # tushare指数行情成交量单位为手
+    df['amount'] = df['amount'] * 1000 # tushare指数行情成交额单位为千元
     df.rename(columns=cols, inplace=True)
     df['code'] = code
     df['date'] = df['date'].apply(lambda x: dttools.date_reformat(x, '-'))
     df = df[COLS_FINAL]
+    df.sort_values(['code', 'date'], inplace=True)
+    df.reset_index(drop=True, inplace=True)
     return df
 
 
@@ -91,11 +97,7 @@ def update_index_daily(code, df_exist=None, fpath=None,
     
     logger_show('更新{}日线数据, {}->{} ...'.format(code, dates[0], dates[-1]),
                 logger, 'info')
-    data = []
-    for date1, date2 in dttools.cut_date(start_date, end_date, 6000):
-        df = get_index_daily(code, date1, date2, ts_api)
-        data.append(df)
-    data = pd.concat(data, axis=0)
+    data = get_index_daily(code, start_date, end_date, ts_api)
     if data.shape[0] == 0:
         logger_show('{}新获取0条记录，返回已存在数据。'.format(code),
                     logger, 'warn')
@@ -110,6 +112,7 @@ def update_index_daily(code, df_exist=None, fpath=None,
                             sort_first=False,
                             csv_path=fpath,
                             csv_index=None)
+    data_all.reset_index(drop=True, inplace=True)
     
     return data_all
 
@@ -190,6 +193,8 @@ if __name__ == '__main__':
         '000688.SH': '2019-12-30', # '科创50'
         '399001.SZ': '1991-04-02', # '深证成指'
     }
+    
+    dfs, losses = {}, {}
     keys = list(codes.keys())
     for k in range(len(keys)):
         code = keys[k]
@@ -198,7 +203,7 @@ if __name__ == '__main__':
             trade_dates = trade_dates_sh
         elif code.endswith('.SZ'):
             trade_dates = trade_dates_sz
-        exec('''df_{}, loss_{} = try_update_index_daily_check(
+        exec('''dfs['{}'], losses['{}'] = try_update_index_daily_check(
                                     code,
                                     save_path=None,
                                     root_dir=None,
@@ -208,8 +213,6 @@ if __name__ == '__main__':
                                     logger=logger)
              '''.format(code[:6], code[:6])
             )
-        # if k % 5 == 0:
-        #     time.sleep(61)
         
 
     close_log_file(logger)

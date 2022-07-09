@@ -24,7 +24,7 @@ if __name__ == '__main__':
     import time
     import pandas as pd
     from dramkit import load_csv, plot_series
-    from dramkit.plottools.plot_candle import plot_candle
+    from finfactory.finplot.plot_candle import plot_candle
     
     strt_tm = time.time()
     
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     
     
     # 50ETF日线行情
-    fpath = '../_test/510050_daily_pre_fq.csv'
+    fpath = '../_test/510050.SH_daily_qfq.csv'
     df = load_csv(fpath)
     df['time'] = df['date']
     df.set_index('date', drop=True, inplace=True)

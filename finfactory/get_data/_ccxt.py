@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 
-import os
-import sys
-import time
+import traceback
+from dramkit import simple_logger
 from dramkit import logger_show
-from dramkit.iotools import cmd_run_pys
-from finfactory.utils.utils import gen_py_logger
-from finfactory.config import cfg as config
+try:
+    import sys
+    import time
+    from dramkit import close_log_file
+    from dramkit.iotools import cmd_run_pys
+    from finfactory.utils.utils import gen_py_logger
+    from finfactory.config import cfg as config
+    
+    config.set_key_value('no_py_log', False)
 
-config.set_key_value('no_py_log', False)
 
-
-if __name__ == '__main__':    
-    cwd = os.getcwd()    
     strt_tm = time.time()
 
     files = [
@@ -20,7 +21,7 @@ if __name__ == '__main__':
         'ccxt_minute.py'
     ]
     
-    logger = gen_py_logger(sys.argv[0])
+    logger = gen_py_logger(sys.argv[0], config=config)
     # logger = None
     
     cmd_run_pys(files, logger)
@@ -28,4 +29,10 @@ if __name__ == '__main__':
     
     us = round(time.time()-strt_tm, 6)
     logger_show('cmd run pys used time: {}s.'.format(us), logger)
+    close_log_file(logger)
+except:
+    logger = simple_logger('../../log/_ccxt.log', 'a')
+    logger_show(traceback.format_exc(), logger, 'error')
+    logger_show('运行出错！', logger, 'error')
+    close_log_file(logger)
     

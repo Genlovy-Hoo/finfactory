@@ -56,14 +56,20 @@ def get_future_daily(code, start_date, end_date=None, ts_api=None):
             'oi_chg': '持仓量变化',
             'delv_settle': '交割结算价'
         }
-    df = ts_api.fut_daily(ts_code=code,
-                          start_date=start_date,
-                          end_date=end_date,
-                          fields=','.join(list(cols.keys())))
+    data = []
+    for date1, date2 in dttools.cut_date(start_date, end_date, 1500):
+        df = ts_api.fut_daily(ts_code=code,
+                              start_date=date1,
+                              end_date=date2,
+                              fields=','.join(list(cols.keys())))
+        data.append(df)
+    df = pd.concat(data, axis=0)
     df.rename(columns=cols, inplace=True)
     df['amount'] = df['amount'] * 10000 # tushare期货行情成交额单位为万元
     df['date'] = df['date'].apply(lambda x: dttools.date_reformat(x, '-'))
     df = df[COLS_FINAL]
+    df.sort_values(['code', 'date'], inplace=True)
+    df.reset_index(drop=True, inplace=True)
     return df
 
 
@@ -106,11 +112,7 @@ def update_future_daily(code, df_exist=None, fpath=None,
     
     logger_show('更新{}日线数据, {}->{} ...'.format(code, dates[0], dates[-1]),
                 logger, 'info')
-    data = []
-    for date1, date2 in dttools.cut_date(start_date, end_date, 1500):
-        df = get_future_daily(code, date1, date2, ts_api)
-        data.append(df)
-    data = pd.concat(data, axis=0)
+    data = get_future_daily(code, start_date, end_date, ts_api)
     if data.shape[0] == 0:
         logger_show('{}新获取0条记录，返回已存在数据。'.format(code),
                     logger, 'warn')
@@ -126,6 +128,7 @@ def update_future_daily(code, df_exist=None, fpath=None,
                             csv_path=fpath,
                             csv_index=None,
                             csv_encoding='gbk')
+    data_all.reset_index(drop=True, inplace=True)
     
     return data_all
 
@@ -200,13 +203,14 @@ if __name__ == '__main__':
     trade_dates_all = {key: load_trade_dates_tushare(val) \
                        for key, val in ex_name_map.items()}
     
+    dfs, losses = {}, {}
     keys = list(codes.keys())
     for k in range(len(keys)):
         code = keys[k]
         start_date = codes[code]
         ex = code.split('.')[-1]
         trade_dates = trade_dates_all[ex]
-        exec('''df_{}, loss_{} = try_update_future_daily_check(
+        exec('''dfs['{}'], losses['{}'] = try_update_future_daily_check(
                                     code,
                                     save_path=None,
                                     root_dir=None,
@@ -216,8 +220,6 @@ if __name__ == '__main__':
                                     logger=logger)
               '''.format(code.split('.')[0], code.split('.')[0])
             )
-        # if k % 5 == 0:
-        #     time.sleep(61)
         
 
     close_log_file(logger)

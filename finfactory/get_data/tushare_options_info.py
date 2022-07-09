@@ -45,8 +45,8 @@ def get_options_info(exchange, ts_api=None, logger=None):
         # 看涨期权
         df_C = ts_api.opt_basic(exchange=exchange, call_put='P',
                                 fields=','.join(list(cols.keys())))
-        logger_show('pausing...', logger)
-        time.sleep(65)
+        logger_show('DCE pausing...', logger)
+        time.sleep(61)
         # 看跌期权
         df_P = ts_api.opt_basic(exchange=exchange, call_put='C',
                                 fields=','.join(list(cols.keys())))
@@ -65,6 +65,7 @@ def get_options_info(exchange, ts_api=None, logger=None):
         df[col] = df[col].apply(lambda x:
                   str(x)[:4]+'-'+str(x)[4:6] if not isnull(x) else np.nan)
     df['到期月'] = df['到期日'].apply(lambda x: get_year_month(x))
+    logger_show('{} shape: {}'.format(exchange, df.shape))
     return df
 
 
@@ -107,10 +108,11 @@ def update_options_info(exchange, save_path=None, root_dir=None,
     df = archive_data(df, df_exist,
                       sort_cols=['到期日', 'code'],
                       del_dup_cols=['code'],
-                      sort_first=True,
+                      sort_first=False,
                       csv_path=save_path,
                       csv_index=None,
                       csv_encoding='gbk')
+    df.reset_index(drop=True, inplace=True)
     
     return df, True
 
@@ -123,7 +125,7 @@ if __name__ == '__main__':
     from finfactory.utils.utils import gen_py_logger
     strt_tm = time.time()
     
-    ts_api = get_tushare_api()
+    ts_api = get_tushare_api(cfg.tushare_token2)
     logger = gen_py_logger(sys.argv[0])
     
     
@@ -142,10 +144,11 @@ if __name__ == '__main__':
             'DCE': ['大商所(大连商品交易所)', '.DCE']
         }
     
+    dfs = {}
     exs_ = list(exs.keys())
-    for k in range(len(exs_)):
-        ex = exs_[k]
-        exec('''df_{}, updated = try_update_options_info(
+    k = 0
+    for ex in exs_:
+        exec('''dfs['{}'], updated = try_update_options_info(
                                     ex, 
                                     save_path=None,
                                     root_dir=None,
@@ -153,9 +156,11 @@ if __name__ == '__main__':
                                     logger=logger)
               '''.format(ex)
               )
-        if eval('updated') and k != len(exs_)-1:
+        if eval('updated'):
+            k += 1
+        if k % cfg.ts_1min_opt_basic == 0 and k != len(exs_)-1 and k > 0:
             logger_show('pausing...', logger)
-            time.sleep(65)
+            time.sleep(61)
         
     
     close_log_file(logger)

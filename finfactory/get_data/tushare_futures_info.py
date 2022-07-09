@@ -87,10 +87,11 @@ def update_futures_info(exchange, save_path=None, root_dir=None,
     df = archive_data(df, df_exist,
                       sort_cols=['上市日期', 'code'],
                       del_dup_cols=['code'],
-                      sort_first=True,
+                      sort_first=False,
                       csv_path=save_path,
                       csv_index=None,
                       csv_encoding='gbk')
+    df.reset_index(drop=True, inplace=True)
     
     return df
 
@@ -121,8 +122,10 @@ if __name__ == '__main__':
             'SHFE': '上期所',
             'INE': '上海国际能源交易中心',
         }
+    
+    dfs = {}
     for ex in exs.keys():
-        exec('''df_{} = try_update_futures_info(
+        exec('''dfs['{}'] = try_update_futures_info(
                             ex, 
                             save_path=None,
                             root_dir=None,

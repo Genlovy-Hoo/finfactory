@@ -172,7 +172,7 @@ if __name__ == '__main__':
     from dramkit import load_csv
 
     # zigzig测试--------------------------------------------------------------
-    fpath = '../_test/510050_daily_pre_fq.csv'
+    fpath = '../_test/510050.SH_daily_qfq.csv'
     his_data = load_csv(fpath)
     his_data.rename(columns={'date': 'time'}, inplace=True)
     his_data.set_index('time', drop=False, inplace=True)

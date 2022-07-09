@@ -102,6 +102,7 @@ def update_chn_money(df_exist=None, fpath=None,
                           csv_index=None)
     
     _logger_show_last_month(df_all)
+    df_all.reset_index(drop=True, inplace=True)
     
     return df_all
 
@@ -112,7 +113,7 @@ def update_chn_money_check(save_path=None,
                            ts_api=None,
                            logger=None):
     '''
-    更新中国货币供应量
+    更新中国货币供应量数据
     '''
     
     def _get_save_path(save_path):

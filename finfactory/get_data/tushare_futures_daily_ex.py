@@ -12,6 +12,7 @@ from finfactory.load_his_data import find_target_dir
 from finfactory.utils.utils import get_tushare_api
 from finfactory.utils.utils import check_date_loss
 from finfactory.utils.utils import parms_check_ts_daily
+from finfactory.config import cfg
 
 
 COLS_FINAL = ['code', 'date', 'open', 'high', 'low', 'close',
@@ -78,9 +79,9 @@ def get_futures_daily_by_dates(exchange, dates,
         logger_show('{}/{}, {} ...'.format(k, len(dates), date),
                     logger, 'info')
         data.append(get_futures_daily(exchange, date, ts_api))
-        if k % 15 == 0 and k > 0 and k != len(dates)-1:
+        if k % cfg.ts_1min_fut_daily == 0 and k > 0 and k != len(dates)-1:
             logger_show('pausing...', logger)
-            time.sleep(65)
+            time.sleep(61)
     data = pd.concat(data, axis=0)
     data.sort_values(['date', 'code'], inplace=True)
     return data
@@ -130,7 +131,7 @@ def update_futures_daily(exchange, df_exist=None, fpath=None,
     for date in dates:
         global TS_API_USED_TIMES
         TS_API_USED_TIMES += 1
-        if TS_API_USED_TIMES % 15 == 0:
+        if TS_API_USED_TIMES % cfg.ts_1min_fut_daily == 0:
             # 防止报错丢失，在迭代过程中保存数据
             if len(data) > 1:
                 data_ = pd.concat(data, axis=0)[COLS_FINAL]
@@ -143,7 +144,7 @@ def update_futures_daily(exchange, df_exist=None, fpath=None,
                                      csv_index=None,
                                      csv_encoding='gbk')
             logger_show('pausing...', logger)
-            time.sleep(65)
+            time.sleep(61)
         logger_show('{}...'.format(date), logger)
         df = get_futures_daily(exchange, date, ts_api)
         logger_show('{}, {}, {}'.format(exchange, date, df.shape),
@@ -169,6 +170,7 @@ def update_futures_daily(exchange, df_exist=None, fpath=None,
                             csv_path=fpath,
                             csv_index=None,
                             csv_encoding='gbk')
+    data_all.reset_index(drop=True, inplace=True)
     
     return data_all
 
@@ -215,7 +217,6 @@ if __name__ == '__main__':
     from dramkit import close_log_file
     from dramkit.gentools import try_repeat_run
     from finfactory.load_his_data import load_trade_dates_tushare
-    from finfactory.config import cfg
     from finfactory.utils.utils import gen_py_logger
     strt_tm = time.time()
     
@@ -237,12 +238,13 @@ if __name__ == '__main__':
             'INE': '20180326', # '上海国际能源交易中心',
         }
     		
+    dfs, losses = {}, {}
     exs_ = list(exs.keys())
     for k in range(len(exs_)):
         ex = exs_[k]
         start_date = exs[ex]
         trade_dates = load_trade_dates_tushare(ex)
-        exec('''df_{}, loss_{} = try_update_futures_daily_check(
+        exec('''dfs['{}'], losses['{}'] = try_update_futures_daily_check(
                                         ex,
                                         save_path=None,
                                         root_dir=None,

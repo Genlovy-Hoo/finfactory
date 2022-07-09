@@ -473,7 +473,7 @@ if __name__ == '__main__':
     from dramkit import load_csv
     strt_tm = time.time()
 
-    daily_50etf_pre_fq_path = '../_test/510050_daily_pre_fq.csv'
+    daily_50etf_pre_fq_path = '../_test/510050.SH_daily_qfq.csv'
     data = load_csv(daily_50etf_pre_fq_path)
     data['time'] = data['date'].copy()
     data.set_index('time', drop=False, inplace=True)

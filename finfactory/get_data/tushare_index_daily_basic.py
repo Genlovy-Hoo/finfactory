@@ -38,24 +38,29 @@ def get_index_daily_basic(code, start_date,
     if isnull(end_date):
         end_date = dttools.today_date('')
     start_date = dttools.date_reformat(start_date, '')
-    end_date = dttools.date_reformat(end_date, '')    
-    df = ts_api.index_dailybasic(
-            ts_code=code,
-            fields=('ts_code,trade_date,total_mv,float_mv,'
-                    'total_share,float_share,free_share,'
-                    'turnover_rate,turnover_rate_f,pe,pe_ttm,pb'),
-            start_date=start_date,
-            end_date=end_date)        
-    df.rename(columns={
-                'ts_code': 'code', 'trade_date': 'date',
-                'total_mv': '总市值', 'float_mv': '流通市值',
-                'total_share': '总股本', 'float_share': '流通股本',
-                'free_share': '自由流通股本', 'turnover_rate': '换手率',
-                'turnover_rate_f': '换收益(自由流通)'},
-              inplace=True)
+    end_date = dttools.date_reformat(end_date, '')
+    cols = {'ts_code': 'code', 'trade_date': 'date',
+            'total_mv': '总市值', 'float_mv': '流通市值',
+            'total_share': '总股本', 'float_share': '流通股本',
+            'free_share': '自由流通股本', 'turnover_rate': '换手率',
+            'turnover_rate_f': '换收益(自由流通)'}
+    data = []
+    for date1, date2 in dttools.cut_date(start_date, end_date, 2500):
+        df = ts_api.index_dailybasic(
+                ts_code=code,
+                fields=('ts_code,trade_date,total_mv,float_mv,'
+                        'total_share,float_share,free_share,'
+                        'turnover_rate,turnover_rate_f,pe,pe_ttm,pb'),
+                start_date=date1,
+                end_date=date2)
+        data.append(df)
+    df = pd.concat(data, axis=0)        
+    df.rename(columns=cols, inplace=True)
     df['code'] = code
     df['date'] = df['date'].apply(dttools.date_reformat)
     df = df[COLS_FINAL]
+    df.sort_values(['code', 'date'], inplace=True)
+    df.reset_index(drop=True, inplace=True)
     return df
 
 
@@ -98,11 +103,7 @@ def update_index_daily_basic(code, df_exist=None, fpath=None,
     
     logger_show('更新{}日线基本数据, {}->{} ...'.format(code, dates[0], dates[-1]),
                 logger, 'info')
-    data = []
-    for date1, date2 in dttools.cut_date(start_date, end_date, 2500):
-        df = get_index_daily_basic(code, date1, date2, ts_api)
-        data.append(df)
-    data = pd.concat(data, axis=0)
+    data = get_index_daily_basic(code, start_date, end_date, ts_api)
     if data.shape[0] == 0:
         logger_show('{}新获取0条记录，返回已存在数据。'.format(code),
                     logger, 'warn')
@@ -118,6 +119,7 @@ def update_index_daily_basic(code, df_exist=None, fpath=None,
                             csv_path=fpath,
                             csv_index=None,
                             csv_encoding='gbk')
+    data_all.reset_index(drop=True, inplace=True)
     
     return data_all
 
@@ -196,6 +198,8 @@ if __name__ == '__main__':
         '000905.SH': '2007-01-14', # '中证500'
         '399001.SZ': '2004-01-01', # '深证成指'
     }
+    
+    dfs, losses = {}, {}
     keys = list(codes.keys())
     for k in range(len(keys)):
         code = keys[k]
@@ -204,7 +208,7 @@ if __name__ == '__main__':
             trade_dates = trade_dates_sh
         elif code.endswith('.SZ'):
             trade_dates = trade_dates_sz
-        exec('''df_{}, loss_{} = try_update_index_daily_basic_check(
+        exec('''dfs['{}'], losses['{}'] = try_update_index_daily_basic_check(
                                         code,
                                         save_path=None,
                                         root_dir=None,
@@ -214,8 +218,6 @@ if __name__ == '__main__':
                                         logger=logger)
              '''.format(code[:6], code[:6])
             )
-        # if k % 5 == 0:
-        #     time.sleep(61)
         
 
     close_log_file(logger)

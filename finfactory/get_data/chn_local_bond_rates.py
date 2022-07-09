@@ -178,6 +178,7 @@ def update_bond_yields(df_exist=None, fpath=None,
         
     if not isnull(fpath):
         data.to_csv(fpath, index=None, encoding='gbk')
+    data.reset_index(drop=True, inplace=True)
         
     return data
 
