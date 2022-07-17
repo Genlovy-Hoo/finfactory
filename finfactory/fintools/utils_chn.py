@@ -2,12 +2,15 @@
 
 import os
 import calendar
+import numpy as np
 import pandas as pd
+from itertools import product
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from chinese_calendar import is_workday
 from dramkit.gentools import isnull
 from dramkit.gentools import sort_dict
+from dramkit.gentools import print_used_time
 from dramkit.iotools import load_csv
 from dramkit import datetimetools as dttools
 
@@ -21,6 +24,56 @@ LAST_DATE_Q1 = '04-30' # 一季报披露时间（4月1日 – 4月30日）
 LAST_DATE_SEMI = '08-31' # 半年报披露时间（7月1日 – 8月31日）
 LAST_DATE_Q3 = '10-31' # 三季报披露时间（10月1日 – 10月31日）
 LAST_DATE_ANN = '04-30' # 年报披露时间（1月1日 – 4月30日）
+
+
+@print_used_time
+def merge_minute_candle(data, new_freq=30, cols_sum=None,
+                        time_trans=False):
+    '''
+    | 用一分钟K线合成更低频分钟K线
+    | new_freq指定合成的频率，必须能被240整除
+    | data时间列必须为time且时间为每个K线的结束时间
+    | data中必须包含['time', 'open', 'close', 'high', 'low']
+    | cols_sum为求和字段，如可指定成交量'volume'或成交额'value'等
+    | 若data中的time列格式不为'%Y-%m-%d %H:%M:%S'格式，应将time_trans设置为True
+    '''
+    assert 240 % new_freq == 0, ''
+    assert isinstance(cols_sum, (type(None), list))
+    if isnull(cols_sum):
+        cols_sum = []
+    cols_all = ['time', 'open', 'close', 'high', 'low'] + cols_sum
+    df = data[cols_all].copy()
+    if time_trans:
+        df['time'] = pd.to_datetime(df['time'])
+        df['time'] = df['time'].apply(lambda x: x.strftime('%Y-%m-%d %H:%M:%S'))
+    dates = df['time'].apply(lambda x: x[:10]).unique().tolist()
+    minutes = pd.date_range('2022-02-22 09:31:00', '2022-02-22 15:00:00', freq='1min')
+    minutes = [x for x in minutes if x <= pd.to_datetime('2022-02-22 11:30:00') \
+               or x >= pd.to_datetime('2022-02-22 13:01:00')]
+    minutes = [x.strftime('%H:%M:%S') for x in minutes]
+    # times = list(product(dates, minutes))
+    # df_new = pd.DataFrame(times, columns=['date', 'minute'])
+    df_new = pd.DataFrame(product(dates, minutes),
+                          columns=['date', 'minute'])
+    df_new['time'] = df_new['date'] + ' ' + df_new['minute']
+    df_new = pd.merge(df_new[['time']], df, how='left', on='time')
+    df_new['tmp'] = range(1, df_new.shape[0]+1)
+    df_new['tmp'] = df_new['tmp'] % new_freq
+    df_new['time'] = df_new[['time', 'tmp']].apply(lambda x: x['time'] if x['tmp'] == 0 else np.nan, axis=1)
+    df_new['time'] = df_new['time'].fillna(method='bfill')
+    df_open = df_new.groupby('time')['open'].apply(lambda x: x.fillna(method='bfill').iloc[0])
+    df_close = df_new.groupby('time')['close'].apply(lambda x: x.fillna(method='ffill').iloc[-1])
+    df_high = df_new.groupby('time')['high'].apply(lambda x: x.max())
+    df_low = df_new.groupby('time')['low'].apply(lambda x: x.min())
+    sums = []
+    for col in cols_sum:
+        df_ = df_new.groupby('time')[col].apply(lambda x: x.sum())
+        sums.append(df_)
+    df_new = pd.concat([df_open, df_close, df_high, df_low]+sums, axis=1)
+    df_new.reset_index(inplace=True)
+    df_new.sort_values('time', ascending=True, inplace=True)
+    df_new.dropna(subset=['close'], inplace=True)
+    return df_new
 
 
 def get_finreport_date_by_delta(end_date, n, out_format='str'):

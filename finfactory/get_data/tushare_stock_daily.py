@@ -58,7 +58,7 @@ def get_fpath(code, fpath, save_csv, root_dir):
     if not save_csv:
         return None
     fdir = find_target_dir('stocks/tushare/{}/'.format(code),
-                           root_dir=root_dir)
+                           root_dir=root_dir, make=True)
     return '{}{}_daily.csv'.format(fdir, code)
 
 
@@ -83,7 +83,7 @@ def get_stock_daily(code, start_date=None, end_date=None,
     start_date = dttools.date_reformat(start_date, '')
     end_date = dttools.date_reformat(end_date, '')
     data = []
-    for dt1, dt2 in dttools.cut_date(start_date, end_date, 8000):
+    for dt1, dt2 in dttools.cut_date(start_date, end_date, 4500):
         global TS_API_USED_TIMES
         TS_API_USED_TIMES += 1
         if TS_API_USED_TIMES % cfg.ts_1min_daily == 0:
@@ -189,7 +189,6 @@ def update_stock_daily_check(code,
     def _get_save_path(save_path):
         '''获取股票日线历史数据存放路径'''
         if isnull(save_path):
-            from finfactory.load_his_data import find_target_dir
             save_dir = find_target_dir('stocks/tushare/{}/'.format(code),
                        root_dir=root_dir, make=True, logger=logger)
             save_path = '{}{}_daily.csv'.format(save_dir, code)

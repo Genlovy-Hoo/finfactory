@@ -11,6 +11,7 @@ import dramkit.datetimetools as dttools
 from finfactory.utils.utils_crypto import check_loss
 from finfactory.utils.utils_crypto import get_ccxt_market
 from finfactory.utils.utils_crypto import get_klines_ccxt
+from finfactory.load_his_data import find_target_dir
 
 
 def check_minute_loss(data, symbol, minute, logger=None):
@@ -96,7 +97,6 @@ def update_minute_check(symbol, minute,
     def _get_save_path(save_path):
         '''获取分钟数据存放路径'''
         if isnull(save_path):
-            from finfactory.load_his_data import find_target_dir
             save_dir = find_target_dir('{}/ccxt_{}/'.format(name1, mkt),
                        root_dir=root_dir, make=True, logger=logger)
             save_path = save_dir + '{}_{}minute.csv'.format(name2, int(minute))

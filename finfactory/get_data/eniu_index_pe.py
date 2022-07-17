@@ -8,6 +8,7 @@ from dramkit import isnull, logger_show, load_csv
 from dramkit.other.othertools import archive_data
 from finfactory.utils.utils import check_daily_data_is_new
 from finfactory.utils.utils import check_date_loss
+from finfactory.load_his_data import find_target_dir
 
 
 COLS_FINAL = ['date', 'pe', 'close']
@@ -38,7 +39,7 @@ def get_index_pe(eniu_code):
     data = pd.DataFrame(data)
     data.sort_values('date', ascending=True, inplace=True)
     data = data[COLS_FINAL].copy()
-    return data
+    return data.iloc[1:, :]
 
 
 def update_index_pe(eniu_code, df_exist=None,
@@ -78,7 +79,6 @@ def update_index_pe_check(eniu_code,
     def _get_save_path(save_path):
         '''获取指数PE估值日数据存放路径'''
         if isnull(save_path):
-            from finfactory.load_his_data import find_target_dir
             save_dir = find_target_dir('index/eniu/',
                        root_dir=root_dir, make=True, logger=logger)
             save_path = save_dir + '{}_pe_daily.csv'.format(eniu_code)

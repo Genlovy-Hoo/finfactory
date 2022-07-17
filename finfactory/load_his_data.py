@@ -36,30 +36,42 @@ for x in ['IF', 'IC', 'IH']:
     TS_NAME_CODE.update({x.lower()+'9999': x+'.CFX'})
 
 #%%
+class DataArchivesRootDirError(Exception):
+    pass
+
+
 def find_target_dir(dir_name, root_dir=None, make=False,
                     logger=None):
     assert isinstance(root_dir, (type(None), str))
-    if root_dir is None:
+    if isnull(root_dir):
         from finfactory.config import cfg
         prefix_dirs = cfg.archive_roots.copy()
-    else:
-        prefix_dirs = [root_dir]
-    fpath = str(FILE_PATH.parent.parent)
-    fpath = os.path.join(fpath, 'data', 'archives/')
-    fpath = fpath.replace('\\', '/')
-    prefix_dirs.append(fpath)
-    for dr in prefix_dirs:
-        dir_path = dr + dir_name
-        if os.path.exists(dir_path):
+        fpath = str(FILE_PATH.parent.parent)
+        fpath = os.path.join(fpath, 'data', 'archives/')
+        fpath = fpath.replace('\\', '/')
+        prefix_dirs.append(fpath)
+        for dr in prefix_dirs:
+            if os.path.exists(dr):
+                root_dir = dr
+                break
+        if isnull(root_dir):
+            raise DataArchivesRootDirError(
+                '\n未找到按以下顺序的默认数据存档根目录: \n{}'.format(',\n'.join(prefix_dirs)) + \
+                ',\n请手动新建或在config.py中配置`archive_roots`！'
+                )
+    dir_path = root_dir + dir_name
+    if not os.path.exists(dir_path):
+        if make:
+            logger_show('新建文件夹: {}'.format(dir_path),
+                        logger, 'info')
+            make_dir(dir_path)
             return dir_path
         else:
-            if make:
-                logger_show('新建文件夹: {}'.format(dir_path),
-                            logger, 'info')
-                make_dir(dir_path)
-                return dir_path
-    raise ValueError('未找到文件夹`{}{}`路径，请检查！'.format(
-                     root_dir, dir_name))
+            raise ValueError('未找到文件夹`{}{}`路径，请检查！'.format(
+                             root_dir, dir_name))
+    else:
+        return dir_path
+    
     
 def find_paths_year(fpath):
     '''根据fpath查找与其相关的带年份后缀的所有路径'''
@@ -139,6 +151,14 @@ def load_daily_qkl123(name1, root_dir=None):
 
 def load_daily_crypto_usdt(name1, name2, mkt='binance',
                            root_dir=None, logger=None):
+    '''
+    读取BTC和ETH对USDT日行情数据
+    
+    Examples
+    --------
+    >>> df_eth = load_daily_crypto_usdt('eth', 'eth_usdt')
+    >>> df_btc = load_daily_crypto_usdt('btc', 'btc_usdt')
+    '''
     assert name1 in ['btc', 'eth'], '`name1`只能是`btc`或`eth`！'
     df0 = load_ccxt_daily(name1, name2, mkt, root_dir)
     df0['data_source'] = 'binance'
@@ -162,6 +182,17 @@ def load_daily_crypto_usdt(name1, name2, mkt='binance',
 def load_ccxt_minute(name1, name2, minute=15,
                      mkt='binance', root_dir=None,
                      start_time=None, end_time=None):
+    '''
+    读取ccxt数字货币行情分钟数据
+    
+    Examples
+    --------
+    >>> df_eth_15m = load_ccxt_minute('eth', 'eth_usdt')
+    >>> df_btc_5m = load_ccxt_minute('btc', 'btc_usdt', 5)
+    >>> df_btc_1m = load_ccxt_minute('btc', 'btc_usdt', 1,
+    >>>                              start_time='2022-02-01 05:00:00',
+    >>>                              end_time='2022-06-09 14:00:00')
+    '''
     fdir = find_target_dir('{}/ccxt_{}/'.format(name1, mkt),
                            root_dir=root_dir)
     fpath = fdir + '{}_{}minute.csv'.format(name2, int(minute))    
@@ -172,12 +203,18 @@ def load_ccxt_minute(name1, name2, minute=15,
         df = df[df['time'] >= start_time]
     if not end_time is None:
         df = df[df['time'] <= end_time]
-    df.set_index('time', inplace=True)
+    # df.set_index('time', inplace=True)
     return df
 
 #%%
 def load_trade_dates_tushare(exchange='SSE', root_dir=None):
-    '''读取交易所交易日历历史数据'''
+    '''
+    读取交易所交易日历历史数据
+    
+    Examples
+    --------
+    >>> df_trade_dates = load_trade_dates_tushare()
+    '''
     fdir = find_target_dir('trade_dates/tushare/', root_dir=root_dir)
     fpath = fdir + '{}.csv'.format(exchange)
     df= load_csv(fpath)
@@ -187,7 +224,13 @@ def load_trade_dates_tushare(exchange='SSE', root_dir=None):
 
 #%%
 def load_index_info_tushare(market, root_dir=None):
-    '''根据market读取tushare指数基本信息数据'''
+    '''
+    根据market读取tushare指数基本信息数据
+    
+    Examples
+    --------
+    >>> df_sse = load_index_info_tushare('SSE')
+    '''
     fdir = find_target_dir('index/tushare/index_info/',
                            root_dir=root_dir)
     fpath = fdir + '{}.csv'.format(market)
@@ -235,7 +278,17 @@ def find_index_code_tushare(info, root_dir=None, logger=None):
     
 
 def load_index_daily_tushare(code, root_dir=None):
-    '''读取tushare指数日线数据'''
+    '''
+    读取tushare指数日线数据
+    
+    Examples
+    --------
+    >>> df = load_index_daily_tushare('中证1000')
+    >>> df_sh = load_index_daily_tushare('000001.SH')
+    >>> df_hs300 = load_index_daily_tushare('000300.SH')
+    >>> df_hs300_ = load_index_daily_tushare('399300.SZ')
+    >>> df_zz500 = load_index_daily_tushare('000905.SH')
+    '''
     ts_code = find_index_code_tushare(code)
     fdir = find_target_dir('index/tushare/{}/'.format(ts_code),
                            root_dir=root_dir)
@@ -247,7 +300,16 @@ def load_index_daily_tushare(code, root_dir=None):
 
 
 def load_index_daily_basic_tushare(code, root_dir=None):
-    '''读取tushare指数日线数据'''
+    '''
+    读取tushare指数日线数据
+    
+    Examples
+    --------
+    >>> df = load_index_daily_basic_tushare('沪深300')
+    >>> df_sh_basic = load_index_daily_basic_tushare('000001.SH')
+    >>> df_hs300_basic = load_index_daily_basic_tushare('000300.SH')
+    >>> df_zz500_basic = load_index_daily_basic_tushare('000905.SH')
+    '''
     ts_code = find_index_code_tushare(code)
     fdir = find_target_dir('index/tushare/{}/'.format(ts_code),
                            root_dir=root_dir)
@@ -257,9 +319,32 @@ def load_index_daily_basic_tushare(code, root_dir=None):
     df.drop_duplicates(subset=['date'], keep='last', inplace=True)
     return df
 
+
+def load_index_joinquant(code, freq='daily', root_dir=None):
+    '''
+    读取聚宽指数行情数据
+    
+    Examples
+    --------
+    >>> df = load_index_joinquant('沪深300')
+    '''
+    fdir = find_target_dir('index/joinquant/')
+    fpath = '{}{}_{}.csv'.format(fdir, code, freq)
+    if not os.path.exists(fpath):
+        code = find_index_code_tushare(code, root_dir)
+        code = code.replace('.SZ', '.XSHE').replace('.SH', '.XSHG')
+    df = load_csv(fpath)
+    return df
+
 #%%
 def load_astocks_list_tushare(root_dir=None, del_dup=True):
-    '''导入A股列表数据'''
+    '''
+    导入A股列表数据
+    
+    Examples
+    --------
+    >>> df_a = load_astocks_list_tushare()
+    '''
     fdir = find_target_dir('stocks/tushare/',
                            root_dir=root_dir)
     df = load_csv(fdir+'astocks_list.csv', encoding='gbk')
@@ -329,7 +414,14 @@ def _load_stock_daily_tushare(code, ext='', root_dir=None):
 
 
 def load_stock_daily_tushare(code, ext='', root_dir=None):
-    '''读取tushare股票日线数据'''
+    '''
+    读取tushare股票日线数据
+    
+    Examples
+    --------
+    >>> df = load_stock_daily_tushare('同花顺')
+    >>> df = load_stock_daily_tushare('600570.SH')
+    '''
     assert isinstance(ext, (str, list, tuple))
     if isinstance(ext, str):
         ext = [ext]
@@ -345,7 +437,14 @@ def load_stock_daily_tushare(code, ext='', root_dir=None):
 
 #%%
 def load_chn_bond_yields(cate='national', root_dir=None):
-    '''读取国债收益率历史数据'''
+    '''
+    读取国债收益率历史数据
+    
+    Examples
+    --------
+    >>> df_chn_bonds = load_chn_bond_yields()
+    >>> df_chn_bonds_local = load_chn_bond_yields('local')
+    '''
     fdir = find_target_dir('chn_bonds/{}/'.format(cate),
                            root_dir=root_dir)
     fpath = fdir+'chn_{}_bond_rates.csv'.format(cate)
@@ -357,7 +456,13 @@ def load_chn_bond_yields(cate='national', root_dir=None):
 
 #%%
 def load_cffex_lhb_future(code, date, root_dir=None):
-    '''读取中金所期货龙虎榜数据'''
+    '''
+    读取中金所期货龙虎榜数据
+    
+    Examples
+    --------
+    >>> df_cffex = load_cffex_lhb_future('IF', '2022-06-10')
+    '''
     fdir = find_target_dir('futures/cffex/lhb/{}/'.format(code),
                            root_dir=root_dir)
     date = date_reformat(date, '')
@@ -485,7 +590,14 @@ def load_future_daily_ex_tushare(exchange, root_dir=None):
 
 
 def load_future_daily_tushare(code, root_dir=None, logger=None):
-    '''读取tushare期货日线数据，code为tushare代码'''
+    '''
+    读取tushare期货日线数据，code为tushare代码
+    
+    Examples
+    --------
+    >>> df_if = load_future_daily_tushare('IF.CFX')
+    >>> df_ic = load_future_daily_tushare('IC')
+    '''
     fdir = find_target_dir('futures/tushare/', root_dir=root_dir)
     files = os.listdir(fdir)
     if code in files:
@@ -497,6 +609,21 @@ def load_future_daily_tushare(code, root_dir=None, logger=None):
         code = find_futures_code_tushare(code, root_dir, logger)
         return df[df['code'] == code]
     
+    
+def load_future_mindgo(code, freq='daily', root_dir=None):
+    '''
+    读取mindgo期货行情数据
+    
+    Examples
+    --------
+    >>> df = load_future_mindgo('IF9999')
+    >>> df = load_future_mindgo('IF9999', '1min')
+    '''
+    fdir = find_target_dir('futures/mindgo/')
+    fpath = '{}{}_{}.csv'.format(fdir, code, freq)
+    df = load_csv(fpath)
+    return df
+    
 #%%
 def load_options_info_tushare(exchange, root_dir=None):
     '''读取tushare期权基本信息数据'''
@@ -507,7 +634,13 @@ def load_options_info_tushare(exchange, root_dir=None):
 
 
 def load_options_daily_ex_tushare(exchange, root_dir=None):
-    '''读取tushare交易所期权日线数据'''
+    '''
+    读取tushare交易所期权日线数据
+    
+    Examples
+    --------
+    >>> df_opt_sse = load_options_daily_ex_tushare('SSE')
+    '''
     fdir = find_target_dir('options/tushare/options_daily/',
                            root_dir=root_dir)
     fpath = fdir + exchange + '.csv'
@@ -516,6 +649,11 @@ def load_options_daily_ex_tushare(exchange, root_dir=None):
     df.sort_values(['date', 'code'], ascending=True,
                    inplace=True)
     return df
+
+
+def load_options_daily_tushare(code, root_dir=None):
+    '''读取tushare期权日线数据'''
+    raise NotImplementedError
 
 #%%
 def load_fund_daily_tushare(code, fq='qfq', root_dir=None):
@@ -534,48 +672,6 @@ if __name__ == '__main__':
     import time
 
     strt_tm = time.time()
-    
-    #%%
-    df_eth = load_daily_crypto_usdt('eth', 'eth_usdt')
-    df_btc = load_daily_crypto_usdt('btc', 'btc_usdt')
-    df_eth_15m = load_ccxt_minute('eth', 'eth_usdt')
-    df_btc_5m = load_ccxt_minute('btc', 'btc_usdt', 5)
-    df_btc_1m = load_ccxt_minute('btc', 'btc_usdt', 1,
-                                  start_time='2022-02-01 05:00:00',
-                                  end_time='2022-06-09 14:00:00')
-
-    #%%
-    df_chn_bonds = load_chn_bond_yields()
-    df_chn_bonds_local = load_chn_bond_yields('local')
-    
-    #%%
-    df_trade_dates = load_trade_dates_tushare()
-    
-    #%%
-    df_a = load_astocks_list_tushare()
-    
-    #%%
-    df_cffex = load_cffex_lhb_future('IF', '2022-06-10')
-    
-    #%%
-    df = load_index_daily_tushare('中证1000')
-    df_ = load_index_daily_basic_tushare('沪深300')
-    
-    df_sse = load_index_info_tushare('SSE')
-    
-    df_sh = load_index_daily_tushare('000001.SH')
-    df_sh_basic = load_index_daily_basic_tushare('000001.SH')
-    df_hs300 = load_index_daily_tushare('000300.SH')
-    df_hs300_basic = load_index_daily_basic_tushare('000300.SH')
-    df_hs300_ = load_index_daily_tushare('399300.SZ')
-    df_zz500 = load_index_daily_tushare('000905.SH')
-    df_zz500_basic = load_index_daily_basic_tushare('000905.SH')
-
-    #%%
-    df_if = load_future_daily_tushare('IF.CFX')
-    
-    #%%
-    df_opt_sse = load_options_daily_ex_tushare('SSE')
 
     #%%
     print('used time: {}s.'.format(round(time.time()-strt_tm, 6)))

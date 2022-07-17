@@ -7,6 +7,7 @@ import tushare as ts
 import dramkit.datetimetools as dttools
 from dramkit import load_csv, isnull, simple_logger
 from dramkit.gentools import link_lists
+from dramkit.iotools import make_dir
 from dramkit.other.othertools import get_csv_df_colmaxmin
 from finfactory.fintools.utils_chn import get_trade_dates
 from finfactory.fintools.utils_chn import get_recent_trade_date
@@ -14,6 +15,10 @@ from finfactory.config import cfg
 
 
 FILE_PATH = Path(os.path.realpath(__file__))
+
+
+class LogDirError(Exception):
+    pass
 
 
 def gen_py_logger(pypath, logdir=None, config=None):
@@ -34,8 +39,13 @@ def gen_py_logger(pypath, logdir=None, config=None):
             if os.path.exists(fdir):
                 logdir = fdir
                 break
-    if isnull(logdir):
-        raise ValueError('未识别的`logdir`！')
+        if isnull(logdir):
+            raise LogDirError(
+                '\n未找到按以下顺序的默认日志目录: \n{}'.format(',\n'.join(prefix_dirs)) + \
+                ',\n请手动新建或在config.py中配置`log_dirs`！'
+                )
+    if not os.path.exists(logdir):
+        make_dir(logdir)
     logpath = os.path.basename(pypath).replace('.py', '.log')
     logpath = os.path.join(logdir, logpath)
     logger = simple_logger(logpath, 'a')
@@ -194,11 +204,18 @@ def check_minute_loss(df, freq='1min', time_col=None,
     raise NotImplementedError
     
     
+class TokenError(Exception):
+    pass
+    
+    
 def get_tushare_api(token=None):
     '''根据token获取tushare API接口'''
     if token is None:
-        from finfactory.config import cfg
-        token = cfg.tushare_token1
+        if 'tushare_token' in cfg.keys:
+            token = cfg.tushare_token
+        else:
+            raise TokenError(
+            '请传入token或在config.yml(参见config.py)中设置默认`tushare_token`！')
     ts.set_token(token)
     ts_api = ts.pro_api()
     return ts_api
@@ -231,9 +248,12 @@ def parms_check_ts_daily(save_path_df, time_col='date',
 def get_gm_api(token=None):
     '''根据token获取掘金API接口'''
     import gm.api as gm_api
-    if token is None:
-        from finfactory.config import cfg
-        token = cfg.gm_token
+    if token is None:   
+        if 'gm_token' in cfg.keys:
+            token = cfg.gm_token
+        else:
+            raise TokenError(
+                '请传入token或在config.yml(参见config.py)中设置默认`gm_token`！')
     gm_api.set_token(token)
     return gm_api
 

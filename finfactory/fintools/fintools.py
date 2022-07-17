@@ -750,6 +750,15 @@ def acpmp(values, periods=range(2, 60), mode='sum', std_type='pct',
     return df['acpmp']
 
 
+def get_limit_turn_point(series, limit_up, limit_low):
+    '''
+    | 带界限值限制的拐点标注：
+    |   series中的值大于limit_up时才记录向上的拐点
+    |   series中的值小于limit_low时才记录向下的拐点
+    '''
+    raise NotImplementedError
+
+
 def get_turn_point(series):
     '''
     | 拐点标注

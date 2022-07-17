@@ -11,6 +11,7 @@ import dramkit.datetimetools as dttools
 from finfactory.utils.utils_crypto import check_loss
 from finfactory.utils.utils_crypto import get_ccxt_market
 from finfactory.utils.utils_crypto import get_klines_ccxt
+from finfactory.load_his_data import find_target_dir
 
 
 def check_daily_loss(data, symbol, logger=None):
@@ -92,7 +93,6 @@ def update_daily_check(symbol, save_path=None, root_dir=None,
     def _get_save_path(save_path):
         '''获取日线数据存放路径'''
         if isnull(save_path):
-            from finfactory.load_his_data import find_target_dir
             save_dir = find_target_dir('{}/ccxt_{}/'.format(name1, mkt),
                        root_dir=root_dir, make=True, logger=logger)
             save_path = save_dir + '{}_daily.csv'.format(name2)

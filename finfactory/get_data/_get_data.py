@@ -72,6 +72,10 @@ try:
         # 'tushare_stock_daily_basic.py',
         # 'tushare_stock_daily_stk.py',
         
+        # 'tushare_stock_top10holders.py',
+        # 'tushare_stock_top10holders_free.py',
+        # 'tushare_stock_zjc.py',
+        
         # 'hexun_gold_daily.py',
         # 'hexun_silver_daily.py',
     ]

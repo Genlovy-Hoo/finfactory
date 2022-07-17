@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import os
+import time
 import pandas as pd
+from tqdm import tqdm
 from dramkit import load_csv, isnull
 
 
@@ -18,7 +20,9 @@ def get_exist_trade_time(opts_mint_dir):
     files = os.listdir(opts_mint_dir)
     fpaths = [opts_mint_dir+f for f in files if f[-4:] == '.csv']
     exist_trade_times = []
-    for fpath in fpaths:
+    print('读取已存档的期权分钟行情最新时间...')
+    time.sleep(0.2)
+    for fpath in tqdm(fpaths):
         df = load_csv(fpath)
         df.dropna(subset=['open', 'close', 'low', 'high'],
                   how='all', inplace=True)
@@ -30,8 +34,11 @@ def get_exist_trade_time(opts_mint_dir):
     return exist_trade_times
 
 
-def check_opts_exist_time(opts_info_path, opts_mint_dir):
-    opts_trade_time = get_opts_trade_time(opts_info_path)
+def check_opts_exist_time(opts_info_paths, opts_mint_dir):
+    opts_trade_time = []
+    for opts_info_path in opts_info_paths:
+        opts_trade_time.append(get_opts_trade_time(opts_info_path))
+    opts_trade_time = pd.concat(opts_trade_time, axis=0)
     exist_trade_times = get_exist_trade_time(opts_mint_dir)
     df = pd.merge(opts_trade_time, exist_trade_times, how='left', 
                   left_index=True, right_index=True)
@@ -43,7 +50,6 @@ def check_opts_exist_time(opts_info_path, opts_mint_dir):
     
 
 if __name__ == '__main__':
-    import time
     from finfactory.load_his_data import find_target_dir
     
     strt_tm = time.time()
@@ -54,17 +60,15 @@ if __name__ == '__main__':
     
     
     exs = ['SZSE', 'SSE']
-    data = []
+    infos = []
     for ex in exs:
-        print(ex, '...')
-        fpath = find_target_dir('options/tushare/options_info/')+ex+'.csv'
-        df = check_opts_exist_time(fpath, jq_optsmin_dir)
-        data.append(df)
-    data = pd.concat(data, axis=0)
+        info = find_target_dir('options/tushare/options_info/')+ex+'.csv'
+        infos.append(info)
+    data = check_opts_exist_time(infos, jq_optsmin_dir)
     data.to_csv(jq_dir+'opts_minute_to_update.csv')
         
     
-    print('used: {}s.'.format(round(time.time()-strt_tm, 6)))
+    print('\nused: {}s.'.format(round(time.time()-strt_tm, 6)))
     
     
     

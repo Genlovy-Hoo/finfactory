@@ -8,9 +8,12 @@ except:
     print('Please install `dramkit` via `pip install dramkit --upgrade`')
 
 
-suscess_str = '''successfully installed, version: %s.
-      for more information, use `%s.pkg_info`
-''' % (pkg_info['__version__'], pkg_info['__pkgname__'])
+suscess_str = '''安装成功, 版本: %s.
+      查看更多信息请使用命令: `%s.pkg_info`,
+      修改配置请前往脚本文件: `%s.config.py`
+''' % (pkg_info['__version__'],
+       pkg_info['__pkgname__'],
+       pkg_info['__pkgname__'])
 
 
 def install_check():

@@ -183,7 +183,6 @@ def update_stocks_daily_basic_check(save_path=None,
     def _get_save_path(save_path):
         '''获取股票日线基本数据历史数据存放路径'''
         if isnull(save_path):
-            from finfactory.load_his_data import find_target_dir
             save_dir = find_target_dir('stocks/tushare/stocks_daily/',
                        root_dir=root_dir, make=True, logger=logger)
             save_path = '{}astocks_daily_basic.csv'.format(save_dir)

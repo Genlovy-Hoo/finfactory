@@ -25,6 +25,7 @@ from .fintools import bbw
 from .fintools import mean_candle
 from .fintools import demark_td
 from .fintools import acpmp
+from .fintools import get_limit_turn_point
 from .fintools import get_turn_point
 from .fintools import cross
 from .fintools import cross_plot

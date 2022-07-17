@@ -10,6 +10,7 @@ from finfactory.fintools.utils_chn import get_trade_dates
 from finfactory.utils.utils import check_date_loss
 from finfactory.utils.utils import parms_check_ts_daily
 from finfactory.utils.utils import get_tushare_api
+from finfactory.load_his_data import find_target_dir
 
 
 COLS_FINAL = ['code', 'date', 'open', 'high', 'low',
@@ -143,7 +144,6 @@ def update_fund_daily_check(code,
     def _get_save_path(save_path):
         '''获取基金日线历史数据存放路径'''
         if isnull(save_path):
-            from finfactory.load_his_data import find_target_dir
             save_dir = find_target_dir('fund/tushare/{}/'.format(code),
                        root_dir=root_dir, make=True, logger=logger)
             save_path = save_dir + '{}_daily.csv'.format(code)

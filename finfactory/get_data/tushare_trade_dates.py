@@ -8,6 +8,7 @@ from dramkit.other.othertools import archive_data
 from finfactory.utils.utils import check_date_loss
 from finfactory.utils.utils import parms_check_ts_daily
 from finfactory.utils.utils import get_tushare_api
+from finfactory.load_his_data import find_target_dir
 
 
 COLS_FINAL = ['exchange', 'date', 'is_open', 'pre_trade_date']
@@ -123,7 +124,6 @@ def update_trade_dates_check(exchange='SSE',
     def _get_save_path(save_path):
         '''获取交易日历史数据存放路径'''
         if isnull(save_path):
-            from finfactory.load_his_data import find_target_dir
             save_dir = find_target_dir('trade_dates/tushare/',
                        root_dir=root_dir, make=True, logger=logger)
             save_path = save_dir + '{}.csv'.format(exchange)

@@ -1,6 +1,6 @@
 pkg_info = {
     '__pkgname__': 'finfactory',
-    '__version__': '0.0.3',
+    '__version__': '0.0.5',
     '__license__': 'MIT',
     '__url__': 'https://github.com/Genlovy-Hoo/finfactory/',
     '__urls__':
@@ -13,6 +13,5 @@ pkg_info = {
     '__author_page__': 'www.glhyy.cn',
     '__description__': 'FinFactory is a financial toolbox.',
     '__long_description__':
-        '''FinFactory is a financial toolbox. Its goal is to make financial research more accessible and efficient.
-		'''
+        '''FinFactory is a financial toolbox. It's goal is to make financial research more accessible and efficient.'''
     }
