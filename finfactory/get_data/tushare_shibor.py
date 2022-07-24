@@ -45,12 +45,12 @@ def get_shibor(start_date, end_date=None, ts_api=None):
             '2w': '2周', '1m': '1个月', '3m': '3个月',
             '6m': '6个月', '9m': '9个月', '1y': '1年'}
     data = []
+    global TS_API_USED_TIMES
     for date1, date2 in dttools.cut_date(start_date, end_date, 1800):
         df = ts_api.shibor(start_date=date1,
                            end_date=date2,
                            fields=','.join(list(cols.keys())))
         data.append(df)
-        global TS_API_USED_TIMES
         TS_API_USED_TIMES += 1
         if TS_API_USED_TIMES % cfg.ts_1min_shibor == 0:
             logger_show('{}, pausing...'.format(date1), logger)

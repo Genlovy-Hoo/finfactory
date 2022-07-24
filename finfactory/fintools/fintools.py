@@ -483,7 +483,7 @@ def kdj(data, n_his=9, n_k=3, n_d=3, n_k_=1, n_d_=1):
     | tradingview公式
     | https://blog.csdn.net/qq337484627/article/details/110727392
     '''
-    df = data.reindex(columns=['close', 'high', 'low'])
+    df = data[['close', 'high', 'low']].copy()
     df['high_'] = df['high'].rolling(n_his).max()
     df['low_'] = df['low'].rolling(n_his).min()
     df['RSV'] = 100 * ((df['close']-df['low_']) / (df['high_']-df['low_']))
@@ -512,6 +512,7 @@ def atr(df, lag=14):
     | 平均真实波幅ATR计算，df中必须包含['high', 'low', 'close']三列
     | 返回ATR, TR
     '''
+    df = df.copy()
     df['close_pre'] = df['close'].shift(1)
     df['TR1'] = df['high'] - df['low']
     df['TR2'] = abs(df['close_pre'] - df['high'])
@@ -750,15 +751,6 @@ def acpmp(values, periods=range(2, 60), mode='sum', std_type='pct',
     return df['acpmp']
 
 
-def get_limit_turn_point(series, limit_up, limit_low):
-    '''
-    | 带界限值限制的拐点标注：
-    |   series中的值大于limit_up时才记录向上的拐点
-    |   series中的值小于limit_low时才记录向下的拐点
-    '''
-    raise NotImplementedError
-
-
 def get_turn_point(series):
     '''
     | 拐点标注
@@ -767,7 +759,7 @@ def get_turn_point(series):
     df = pd.DataFrame({'v': series})
     df['dif'] = df['v'].diff()
     df['turn'] = df['dif'].apply(lambda x: 1 if x > 0 else \
-                                                     (-1 if x < 0 else 0))
+                                           (-1 if x < 0 else 0))
     for k in range(df.shape[0]-1):
         if df['dif'].iloc[k] == 0 and df['turn'].iloc[k] == 0:
             df.loc[df.index[k], 'turn'] = -1 * df['turn'].iloc[k+1]
@@ -777,6 +769,21 @@ def get_turn_point(series):
     df['turn'] = df[['turn', 'dif']].apply(lambda x:
                 -1 if x['turn'] == -1 and x['dif'] > 0 else \
                 (1 if x['turn'] == -1 and x['dif'] < 0 else 0), axis=1)
+    return df['turn']
+
+
+def get_limit_turn_point(series, limit_up, limit_low):
+    '''
+    | 带界限值限制的拐点标注：
+    |   series中的值大于等于limit_up时才记录向上的拐点
+    |   series中的值小于等于limit_low时才记录向下的拐点
+    '''
+    df = pd.DataFrame({'v': series})
+    df['turn'] = get_turn_point(df['v'])
+    df['v_pre'] = df['v'].shift(1)
+    df['up_turn'] = (df['turn'] == 1) & (df['v_pre'] >= limit_up)
+    df['low_turn'] = (df['turn'] == -1) & (df['v_pre'] <= limit_low)
+    df['turn'] = df['up_turn'].astype(int) - df['low_turn'].astype(int)
     return df['turn']
 
 

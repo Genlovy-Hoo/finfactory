@@ -43,12 +43,12 @@ def get_lpr(start_date, end_date=None, ts_api=None):
     cols = {'date': 'date', '1y': '1年贷款利率',
             '5y': '5年贷款利率'}
     data = []
+    global TS_API_USED_TIMES
     for date1, date2 in dttools.cut_date(start_date, end_date, 3000):
         df = ts_api.shibor_lpr(start_date=date1,
                                end_date=date2,
                                fields=','.join(list(cols.keys())))
         data.append(df)
-        global TS_API_USED_TIMES
         TS_API_USED_TIMES += 1
         if TS_API_USED_TIMES % cfg.ts_1min_shibor_lpr == 0:
             logger_show('{}, pausing...'.format(date1), logger)

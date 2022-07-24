@@ -44,12 +44,12 @@ def get_usa_bonds_act(start_date, end_date=None, ts_api=None):
             'y10': '10年期', 'y20': '20年期',
             'y30': '30年期'}
     data = []
+    global TS_API_USED_TIMES
     for date1, date2 in dttools.cut_date(start_date, end_date, 1800):
         df = ts_api.us_trycr(start_date=date1,
                              end_date=date2,
                              fields=','.join(list(cols.keys())))
         data.append(df)
-        global TS_API_USED_TIMES
         TS_API_USED_TIMES += 1
         if TS_API_USED_TIMES % cfg.ts_1min_us_trycr == 0:
             logger_show('{}, pausing...'.format(date1), logger)

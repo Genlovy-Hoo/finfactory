@@ -53,12 +53,12 @@ def get_futures_mapping(start_date='20220601',
     start_date = dttools.date_reformat(start_date, '')
     end_date = dttools.date_reformat(end_date, '')    
     data = []
+    global TS_API_USED_TIMES
     for date1, date2 in dttools.cut_date(start_date, end_date, 4):
         logger_show('{}->{}...'.format(date1, date2), logger)
         df = ts_api.fut_mapping(start_date=date1,
                                 end_date=date2)
-        data.append(df)
-        global TS_API_USED_TIMES
+        data.append(df)        
         TS_API_USED_TIMES += 1
         if TS_API_USED_TIMES % cfg.ts_1min_fut_mapping == 0:
             logger_show('{}, pausing...'.format(date1), logger)

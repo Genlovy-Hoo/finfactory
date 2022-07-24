@@ -156,7 +156,8 @@ if __name__ == '__main__':
     strt_tm = time.time()
     
     ts_api = get_tushare_api()
-    logger = gen_py_logger(sys.argv[0])
+    # cfg.set_key_value('no_py_log', False)
+    logger = gen_py_logger(sys.argv[0], config=cfg)
     
     @try_repeat_run(cfg.try_get_tushare, logger=logger,
                     sleep_seconds=cfg.try_get_tushare_sleep)

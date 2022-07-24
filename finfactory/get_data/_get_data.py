@@ -83,6 +83,8 @@ try:
     logger = gen_py_logger(sys.argv[0], config=config)
     # logger = None
     
+    logger_show('\n{}'.format('-'*120), logger)
+    time.sleep(0.2)
     cmd_run_pys(files, logger)
     
     
@@ -95,8 +97,4 @@ except:
     logger_show(traceback.format_exc(), logger, 'error')
     logger_show('运行出错！', logger, 'error')
     close_log_file(logger)
-    
-    
-        
-        
     

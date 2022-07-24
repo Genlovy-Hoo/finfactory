@@ -13,6 +13,10 @@ from finfactory.load_his_data import find_target_dir
 from finfactory.utils.utils import get_tushare_api
 
 
+global TS_API_USED_TIMES
+TS_API_USED_TIMES = 0
+
+
 def get_options_info(exchange, ts_api=None, logger=None):
     '''
     | tushare获取给定交易所exchange的期权合约信息
@@ -41,21 +45,36 @@ def get_options_info(exchange, ts_api=None, logger=None):
             'quote_unit': '报价单位',
             'min_price_chg': '最小价格波幅'
         }
-    if exchange in ['DCE']:
+    global TS_API_USED_TIMES
+    if exchange in ['DCE', 'SHFE', 'CZCE']:
         # 看涨期权
-        df_C = ts_api.opt_basic(exchange=exchange, call_put='P',
+        df_C = ts_api.opt_basic(exchange=exchange, call_put='C',
                                 fields=','.join(list(cols.keys())))
-        logger_show('DCE pausing...', logger)
-        time.sleep(61)
+        logger_show('{}_Call shape: {}'.format(exchange, df_C.shape),
+                    logger=None)
+        TS_API_USED_TIMES += 1
+        if TS_API_USED_TIMES % cfg.ts_1min_opt_basic == 0:
+            logger_show('%s pausing...'%exchange, logger)
+            time.sleep(61)
         # 看跌期权
-        df_P = ts_api.opt_basic(exchange=exchange, call_put='C',
+        df_P = ts_api.opt_basic(exchange=exchange, call_put='P',
                                 fields=','.join(list(cols.keys())))
+        logger_show('{}_Put shape: {}'.format(exchange, df_P.shape),
+                    logger=None)
+        TS_API_USED_TIMES += 1
+        if TS_API_USED_TIMES % cfg.ts_1min_opt_basic == 0:
+            logger_show('%s pausing...'%exchange, logger)
+            time.sleep(61)
         df = pd.concat((df_C, df_P), axis=0)
     else:
         df = ts_api.opt_basic(exchange=exchange,
                               fields=','.join(list(cols.keys())))
+        TS_API_USED_TIMES += 1
+        if TS_API_USED_TIMES % cfg.ts_1min_opt_basic == 0:
+            logger_show('%s pausing...'%exchange, logger)
+            time.sleep(61)
     df.rename(columns=cols, inplace=True)
-    opt_type_map = {'C': '看涨期权','P': '看跌期权'}
+    opt_type_map = {'C': '看涨期权', 'P': '看跌期权'}
     df['期权类型'] = df['期权类型'].map(opt_type_map)    
     for col in ['到期日', '开始交易日期', '最后交易日期', '最后行权日期',
                 '最后交割日期']:
@@ -65,7 +84,8 @@ def get_options_info(exchange, ts_api=None, logger=None):
         df[col] = df[col].apply(lambda x:
                   str(x)[:4]+'-'+str(x)[4:6] if not isnull(x) else np.nan)
     df['到期月'] = df['到期日'].apply(lambda x: get_year_month(x))
-    logger_show('{} shape: {}'.format(exchange, df.shape))
+    logger_show('{} shape: {}'.format(exchange, df.shape),
+                logger=None)
     return df
 
 
@@ -84,7 +104,7 @@ def update_options_info(exchange, save_path=None, root_dir=None,
     
     end_date = get_recent_workday_chncal(dirt='pre')
     if os.path.exists(save_path) and \
-       (get_last_change_time(save_path, '%Y-%m-%d') >= end_date):
+        (get_last_change_time(save_path, '%Y-%m-%d') >= end_date):
         logger_show('{}期权合约信息数据已是最新，不更新！'.format(exchange),
                     logger, 'info')
         return load_csv(save_path, encoding='gbk'), False
@@ -146,7 +166,6 @@ if __name__ == '__main__':
     
     dfs = {}
     exs_ = list(exs.keys())
-    k = 0
     for ex in exs_:
         exec('''dfs['{}'], updated = try_update_options_info(
                                     ex, 
@@ -156,11 +175,6 @@ if __name__ == '__main__':
                                     logger=logger)
               '''.format(ex)
               )
-        if eval('updated'):
-            k += 1
-        if k % cfg.ts_1min_opt_basic == 0 and k != len(exs_)-1 and k > 0:
-            logger_show('pausing...', logger)
-            time.sleep(61)
         
     
     close_log_file(logger)

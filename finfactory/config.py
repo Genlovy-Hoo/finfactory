@@ -11,11 +11,14 @@ FILE_PATH = Path(os.path.realpath(__file__))
 
 
 # 默认配置文件路径查找顺序，根据需要修改
-config_paths = []
-config_paths.append('D:/FinFactory/config/config.yml')
-config_paths.append('E:/FinFactory/config/config.yml')
-config_paths.append('F:/FinFactory/config/config.yml')
-config_paths.append('G:/FinFactory/config/config.yml')
+config_paths = [
+    'D:/FinFactory/config/config.yml',
+    'E:/FinFactory/config/config.yml',
+    'F:/FinFactory/config/config.yml',
+    'G:/FinFactory/config/config.yml',
+    'D:/Genlovy_Hoo/HooProjects/FinFactory/config/config.yml',
+    'E:/Genlovy_Hoo/HooProjects/FinFactory/config/config.yml'
+    ]
 
 fpath = str(FILE_PATH.parent.parent)
 fpath = os.path.join(fpath, 'config', 'config.yml')
@@ -41,7 +44,9 @@ cfg.set_from_dict(
         'D:/FinFactory/data/archives/',
         'E:/FinFactory/data/archives/',
         'F:/FinFactory/data/archives/',
-        'G:/FinFactory/data/archives/'
+        'G:/FinFactory/data/archives/',
+        'D:/Genlovy_Hoo/HooProjects/FinFactory/data/archives/',
+        'E:/Genlovy_Hoo/HooProjects/FinFactory/data/archives/'
         ],
     
     # 默认日志目录
@@ -49,7 +54,9 @@ cfg.set_from_dict(
         'D:/FinFactory/log/',
         'E:/FinFactory/log/',
         'F:/FinFactory/log/',
-        'G:/FinFactory/log/'
+        'G:/FinFactory/log/',
+        'D:/Genlovy_Hoo/HooProjects/FinFactory/log/',
+        'E:/Genlovy_Hoo/HooProjects/FinFactory/log/'
         ],
      
     # 运行Python脚本时是否不保存日志文件

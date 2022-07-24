@@ -51,13 +51,13 @@ def get_block_trades(start_date, end_date=None, ts_api=None):
     cols_rename = {'ts_code': 'code', 'trade_date': 'date',
                    'vol': 'volume'}
     data = []
+    global TS_API_USED_TIMES
     for date1, date2 in dttools.cut_date(start_date, end_date, 1):
         df = ts_api.block_trade(start_date=date1,
                                 end_date=date2,
                                 fields=','.join(list(cols.keys())))
         data.append(df)
         logger_show('{}, {}'.format(date1, df.shape), logger)
-        global TS_API_USED_TIMES
         TS_API_USED_TIMES += 1
         if TS_API_USED_TIMES % cfg.ts_1min_block_trade == 0:
             logger_show('{}, pausing...'.format(date1), logger)
@@ -111,10 +111,10 @@ def update_block_trades(df_exist=None, fpath=None,
     logger_show('更新大宗交易数据, {}->{} ...'.format(start_date, end_date),
                 logger, 'info')
     data = []
+    global TS_API_USED_TIMES
     for date1, date2 in dttools.cut_date(start_date, end_date, 1):
         df = get_block_trades(date1, date2, ts_api)
         data.append(df)
-        global TS_API_USED_TIMES
         TS_API_USED_TIMES += 1
         if TS_API_USED_TIMES % cfg.ts_1min_block_trade == 0:
             if len(data) > 1:

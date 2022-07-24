@@ -128,8 +128,13 @@ def update_futures_daily(exchange, df_exist=None, fpath=None,
     logger_show('更新{}期货日线数据, {}->{} ...'.format(exchange, dates[0], dates[-1]),
                 logger, 'info')
     data = []
+    global TS_API_USED_TIMES
     for date in dates:
-        global TS_API_USED_TIMES
+        logger_show('{}...'.format(date), logger)
+        df = get_futures_daily(exchange, date, ts_api)
+        logger_show('{}, {}, {}'.format(exchange, date, df.shape),
+                    logger)
+        data.append(df)
         TS_API_USED_TIMES += 1
         if TS_API_USED_TIMES % cfg.ts_1min_fut_daily == 0:
             # 防止报错丢失，在迭代过程中保存数据
@@ -145,11 +150,6 @@ def update_futures_daily(exchange, df_exist=None, fpath=None,
                                      csv_encoding='gbk')
             logger_show('pausing...', logger)
             time.sleep(61)
-        logger_show('{}...'.format(date), logger)
-        df = get_futures_daily(exchange, date, ts_api)
-        logger_show('{}, {}, {}'.format(exchange, date, df.shape),
-                    logger)
-        data.append(df)
             
     data = pd.concat(data, axis=0)
     if data.shape[0] == 0:

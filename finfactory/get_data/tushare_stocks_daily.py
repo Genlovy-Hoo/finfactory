@@ -84,13 +84,8 @@ def get_stocks_daily(codes, start_date=None, end_date=None,
         n == 1
     t = len(codes) // n + 1 # 调用接口次数
     data = []
+    global TS_API_USED_TIMES
     for k in range(t):
-        global TS_API_USED_TIMES
-        TS_API_USED_TIMES += 1
-        if TS_API_USED_TIMES % cfg.ts_1min_daily == 0:
-            logger_show('{}, {}, pausing...'.format(k*n, len(codes)),
-                        logger)
-            time.sleep(61)
         codes_ = ','.join(codes[k*n:(k+1)*n])
         if n == 1:
             df = get_stock_daily(codes_, start_date=start_date,
@@ -103,6 +98,11 @@ def get_stocks_daily(codes, start_date=None, end_date=None,
                               end_date=end_date,
                               fields=FIELDS)
         data.append(df)
+        TS_API_USED_TIMES += 1
+        if TS_API_USED_TIMES % cfg.ts_1min_daily == 0:
+            logger_show('{}, {}, pausing...'.format(k*n, len(codes)),
+                        logger)
+            time.sleep(61)
     df = pd.concat(data, axis=0)
     df['vol'] = df['vol'] * 100 # 转化为股
     df['amount'] = df['amount'] * 1000 # 转化为元

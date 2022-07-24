@@ -76,16 +76,16 @@ def get_stocks_daily_stk(start_date=None, end_date=None,
     end_date = dttools.date_reformat(end_date, '')
     dates = get_trade_dates(start_date, end_date, trade_dates)
     data = []
+    global TS_API_USED_TIMES
     for date in dates:
-        global TS_API_USED_TIMES
+        df = ts_api.stk_factor(trade_date=date,
+                               fields=FIELDS)
+        data.append(df)
         TS_API_USED_TIMES += 1
         if TS_API_USED_TIMES % cfg.ts_1min_stk_factor == 0:
             logger_show('{}, pausing...'.format(date),
                         logger)
             time.sleep(61)
-        df = ts_api.stk_factor(trade_date=date,
-                               fields=FIELDS)
-        data.append(df)
     df = pd.concat(data, axis=0)
     df['vol'] = df['vol'] * 100 # 转化为股
     df['amount'] = df['amount'] * 1000 # 转化为元

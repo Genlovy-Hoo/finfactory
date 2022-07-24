@@ -920,7 +920,7 @@ def get_gains_act(df_settle, act_gain_pct_method=2):
     return df
 
 
-def get_fundnet(df_settle, when='before'):
+def get_fundnet(df_settle, when='before', restart=False):
     '''
     用基金净值法根据转入转出和资产总值记录计算净值
     
@@ -939,15 +939,19 @@ def get_fundnet(df_settle, when='before'):
     :returns: `pd.DataFrame` - 包含['新增份额', '份额', '净值']三列
     '''
     assert when in [None, 'before', 'after', 'when']
+    if not restart:
+        cols = ['转入', '转出', '资产总值']
+    else:
+        cols = ['转入', '转出', '资产总值', 'restart']
     if when != 'when':
-        df = df_settle.reindex(columns=['转入', '转出', '资产总值'])
+        df = df_settle[cols].copy()
         if when is None:
             df['when'] = df[['转入', '转出']].apply(lambda x:
                         'before' if x['转入'] >= x['转出'] else 'after', axis=1)
         else:
             df['when'] = when
     else:
-        df = df_settle.reindex(columns=['转入', '转出', '资产总值', when])
+        df = df_settle[cols+[when]].copy()
     assert check_l_allin_l0(df['when'].tolist(), ['before', 'after'])
     ori_index = df.index
     df.reset_index(drop=True, inplace=True)
@@ -957,6 +961,12 @@ def get_fundnet(df_settle, when='before'):
     for k in range(0, df.shape[0]):
         if k == 0:
             df.loc[df.index[k], '新增份额'] = df.loc[df.index[k], '净流入']
+            df.loc[df.index[k], '份额'] = df.loc[df.index[k], '新增份额']
+            df.loc[df.index[k], '净值'] = x_div_y(df.loc[df.index[k], '资产总值'],
+                                df.loc[df.index[k], '份额'], v_y0=1, v_xy0=1)
+        elif restart and df.loc[df.index[k], 'restart'] == 1:
+            df.loc[df.index[k], '新增份额'] = df.loc[df.index[k], '净流入'] + \
+                                            df.loc[df.index[k-1], '资产总值']
             df.loc[df.index[k], '份额'] = df.loc[df.index[k], '新增份额']
             df.loc[df.index[k], '净值'] = x_div_y(df.loc[df.index[k], '资产总值'],
                                 df.loc[df.index[k], '份额'], v_y0=1, v_xy0=1)
@@ -981,8 +991,8 @@ def get_fundnet(df_settle, when='before'):
     return df.reindex(columns=['新增份额', '份额', '净值'])
 
 
-def get_gains(df_settle, gain_types=['act', 'fundnet'], when=None,
-              act_gain_pct_method=2):
+def get_gains(df_settle, gain_types=['act', 'fundnet'],
+              when=None, restart=False, act_gain_pct_method=2):
     '''
     | 不同类型的盈亏情况统计
     | gain_types为累计收益计算方法，可选：
@@ -1018,7 +1028,7 @@ def get_gains(df_settle, gain_types=['act', 'fundnet'], when=None,
         cols = ['转入', '转出', '资产总值']
         if any([x not in df_settle.columns for x in cols]):
             raise ValueError('基金净值法要求包含[`转入`, `转出`, `资产总值`]列！')
-        df_net = get_fundnet(df_gain, when=when)
+        df_net = get_fundnet(df_gain, when=when, restart=restart)
         df_gain = pd.merge(df_gain, df_net, how='left', left_index=True,
                            right_index=True)
 
@@ -2567,6 +2577,20 @@ def get_yield_curve(data, sig_col, nn=252, ext_type=1,
     df_gain.index = ori_index
 
     if plot:
+        tmp = pd.DataFrame(columns=df_gain.columns)
+        tmp.loc['_'+str(df_gain.index[0]),
+                [x for x in df_gain.columns if '净值' in x]] = 1
+        tmp.loc['_'+str(df_gain.index[0]), 'inMaxDown_net'] = \
+                    df_gain.loc[df_gain.index[0], 'inMaxDown_net']
+        tmp.loc['_'+str(df_gain.index[0]), 'dyMaxDown'] = \
+                            df_gain.loc[df_gain.index[0], 'dyMaxDown']
+        if not isnull(col_price):
+            tmp.loc['_'+str(df_gain.index[0]), 'value_mkt'] = 1
+            tmp.loc['_'+str(df_gain.index[0]), 'inMaxDown_mkt'] = \
+                        df_gain.loc[df_gain.index[0], 'inMaxDown_mkt']
+        df_gain = pd.concat((tmp, df_gain), axis=0)
+        
+        
         plot_series(df_gain,
                     {'AccountValue_act_net': ('-m', '账户净值(价值/实际最大占用)'),
                      'AccountValue_maxUsed_net': ('-r', '账户净值(价值/最终最大占用)'),
@@ -2629,7 +2653,8 @@ def get_yield_curve(data, sig_col, nn=252, ext_type=1,
                                  nn=nn, ext_type=ext_type)
     trade_gain_info.update({'年化超额': extr})
 
-    trade_gain_info.update({'最大回撤区间长度': df_gain['inMaxDown_net'].sum()})
+    trade_gain_info.update({'最大回撤区间长度':
+                            float(df_gain['inMaxDown_net'].sum())})
 
     # alpha，beta
     alpha, beta = cal_alpha_beta(df_gain['净值'], df_gain['value_mkt'],
@@ -2824,7 +2849,7 @@ def get_yield_curve2(data, col_gain, col_cost, col_price=None, nn=252,
                  '胜率': hit_rate,
                  '盈亏比': gain_loss_rate,
                  '平均赢率': meanGainPct,
-                 '最大回撤区间长度': df['inMaxDown'].sum(),
+                 '最大回撤区间长度': float(df['inMaxDown'].sum()),
                  '收益/最大占用比': finalGain / maxUsed,
                  '总收益': finalGain,
                  '最大占用': maxUsed,
@@ -2840,6 +2865,19 @@ def get_yield_curve2(data, col_gain, col_cost, col_price=None, nn=252,
     df.index = ori_idx
 
     if plot:
+        tmp = pd.DataFrame(columns=df.columns)
+        tmp.loc['_'+str(df.index[0]), [x for x in df.columns if '净值' in x]] = 1
+        tmp.loc['_'+str(df.index[0]), 'inMaxDown'] = \
+                            df.loc[df.index[0], 'inMaxDown']
+        tmp.loc['_'+str(df.index[0]), 'dyMaxDown'] = \
+                            df.loc[df.index[0], 'dyMaxDown']
+        if not isnull(col_price):
+            tmp.loc['_'+str(df.index[0]), 'value_mkt'] = 1
+            tmp.loc['_'+str(df.index[0]), 'inMaxDown_mkt'] = \
+                        df.loc[df.index[0], 'inMaxDown_mkt']
+        df = pd.concat((tmp, df), axis=0)
+        
+        
         cols_styl_up_left = \
             {'AccountValue_act_net': ('-m', '账户净值(价值/实际最大占用)'),
              'AccountValue_maxUsed_net': ('-r', '账户净值(价值/最终最大占用)'),

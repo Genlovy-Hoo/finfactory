@@ -66,12 +66,8 @@ def get_cctv_news_by_dates(dates, save_dir=None,
     tushare获取新闻联播文本数据
     '''
     data = []
+    global TS_API_USED_TIMES
     for date in dates:
-        global TS_API_USED_TIMES
-        TS_API_USED_TIMES += 1
-        if TS_API_USED_TIMES % cfg.ts_1min_cctv_news == 0:
-            logger_show('pausing...', logger)
-            time.sleep(61)
         logger_show('{}...'.format(date), logger)
         if isnull(save_dir):
             fpath = None
@@ -80,6 +76,10 @@ def get_cctv_news_by_dates(dates, save_dir=None,
             fpath = os.path.join(save_dir, date+'.csv')
         df = get_cctv_news_by_date(date, fpath, ts_api, logger)
         data.append(df)
+        TS_API_USED_TIMES += 1
+        if TS_API_USED_TIMES % cfg.ts_1min_cctv_news == 0:
+            logger_show('pausing...', logger)
+            time.sleep(61)
     data = pd.concat(data, axis=0)[COLS_FINAL]
     return data
 
@@ -126,7 +126,7 @@ def update_cctv_news(save_dir=None, root_dir=None,
                 logger, 'info')
     
     data = get_cctv_news_by_dates(dates, save_dir, 
-                                  ts_api, logger=None)
+                                  ts_api, logger=logger)
     
     loss_dates, _ = check_loss(save_dir, root_dir, logger)
     

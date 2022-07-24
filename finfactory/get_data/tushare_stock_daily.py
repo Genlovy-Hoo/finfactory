@@ -83,18 +83,18 @@ def get_stock_daily(code, start_date=None, end_date=None,
     start_date = dttools.date_reformat(start_date, '')
     end_date = dttools.date_reformat(end_date, '')
     data = []
+    global TS_API_USED_TIMES
     for dt1, dt2 in dttools.cut_date(start_date, end_date, 4500):
-        global TS_API_USED_TIMES
-        TS_API_USED_TIMES += 1
-        if TS_API_USED_TIMES % cfg.ts_1min_daily == 0:
-            logger_show('{}, {}, pausing...'.format(code, dt1),
-                        logger)
-            time.sleep(61)
         df = ts_api.daily(ts_code=code,
                           start_date=dt1,
                           end_date=dt2,
                           fields=FIELDS)
         data.append(df)
+        TS_API_USED_TIMES += 1
+        if TS_API_USED_TIMES % cfg.ts_1min_daily == 0:
+            logger_show('{}, {}, pausing...'.format(code, dt1),
+                        logger)
+            time.sleep(61)
     df = pd.concat(data, axis=0)
     df['vol'] = df['vol'] * 100 # 转化为股
     df['amount'] = df['amount'] * 1000 # 转化为元

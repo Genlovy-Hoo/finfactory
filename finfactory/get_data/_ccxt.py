@@ -24,6 +24,8 @@ try:
     logger = gen_py_logger(sys.argv[0], config=config)
     # logger = None
     
+    logger_show('\n{}'.format('-'*120), logger)
+    time.sleep(0.2)
     cmd_run_pys(files, logger)
     
     

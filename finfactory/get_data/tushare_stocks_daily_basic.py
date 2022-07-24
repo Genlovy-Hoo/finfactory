@@ -76,16 +76,16 @@ def get_stocks_daily_basic(start_date=None, end_date=None,
     end_date = dttools.date_reformat(end_date, '')
     dates = get_trade_dates(start_date, end_date, trade_dates)
     data = []
+    global TS_API_USED_TIMES
     for date in dates:
-        global TS_API_USED_TIMES
+        df = ts_api.daily_basic(trade_date=date,
+                                fields=FIELDS)
+        data.append(df)
         TS_API_USED_TIMES += 1
         if TS_API_USED_TIMES % cfg.ts_1min_daily_basic == 0:
             logger_show('{}, pausing...'.format(date),
                         logger)
             time.sleep(61)
-        df = ts_api.daily_basic(trade_date=date,
-                                fields=FIELDS)
-        data.append(df)
     df = pd.concat(data, axis=0)
     df['trade_date'] = df['trade_date'].apply(dttools.date_reformat)
     df.rename(columns={'ts_code': 'code', 'trade_date': 'date'},
